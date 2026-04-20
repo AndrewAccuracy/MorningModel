@@ -103,7 +103,11 @@ async def process_collection(
 
             content_extraction_tasks = []
             for article in batch:
-                merge_links = bool(article.filter_query)
+                merge_links = bool(
+                    article.filter_query
+                    and collection_config.content_extraction_settings.follow_article_links
+                    and article.follow_article_links is not False
+                )
                 if merge_links:
                     article.follow_article_links = True
                 content_extraction_tasks.append(
@@ -266,6 +270,13 @@ async def main():
     # 4. Generate and output the final markdown digest
     today = datetime.now(timezone.utc)
     document_generator = DocumentGenerator(global_config.output_settings, global_config)
+    digest_context = document_generator.get_context_for_llm()
+    one_line_summarizer = LLMSummarizer(
+        settings=global_config.llm_settings, global_config=global_config
+    )
+    one_line_take = await one_line_summarizer.synthesize_one_line_take(
+        collection_summaries, digest_context
+    )
     final_markdown_digest = document_generator.generate_markdown_digest(
         collection_summaries,
         articles_by_collection,
@@ -273,6 +284,7 @@ async def main():
         today,
         fetch_reports,
         collection_errors or None,
+        one_line_take,
     )
 
     # 5. Output the digest based on global settings

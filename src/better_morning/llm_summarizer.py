@@ -588,15 +588,108 @@ Articles:
         final_summary = await self._summarize_text_content(
             text_content=concatenated_summaries,
             prompt=collection_summary_prompt,
-            model_name=self.settings.reasoner_model,
+            model_name=self.settings.light_model,
             title="Daily Digest Collection Summary",
             timeout=300,
         )
+        if final_summary.startswith("[Error:"):
+            print(
+                "Warning: Collection summary failed. Retrying with a shorter prompt and no previous digest context."
+            )
+            retry_prompt = f"""请从下面候选文章摘要中选出最多 {self.settings.n_most_important_news} 条最重要内容，生成中文编号列表。
+要求：
+1. 每条保留原文标题；
+2. 每条包含来源 Markdown 链接；
+3. 每条包含 2-4 句摘要；
+4. 每条最后必须写一句“入选优势：...”，说明它为什么值得占据最终列表的一个位置；
+5. 不要写开场白、结语或栏目标题。
+
+栏目要求：
+{collection_prompt or "A general news digest."}
+
+候选文章摘要：
+{concatenated_summaries}
+"""
+            final_summary = await self._summarize_text_content(
+                text_content=concatenated_summaries,
+                prompt=retry_prompt,
+                model_name=self.settings.light_model,
+                title="Daily Digest Collection Summary Retry",
+                timeout=300,
+            )
+        if final_summary.startswith("[Error:"):
+            print(
+                "Warning: Collection summary retry failed. Falling back to article summaries."
+            )
+            fallback_items = []
+            for index, article in enumerate(
+                effectively_summarized_articles[: self.settings.n_most_important_news],
+                start=1,
+            ):
+                fallback_items.append(
+                    f"{index}. **{article.title}** ([{article.feed_name or 'Source'}]({article.link}))\n"
+                    f"{article.summary}\n"
+                    "入选优势：该条已通过栏目过滤并进入候选摘要，具备相对更高的信息密度和跟踪价值。"
+                )
+            final_summary = "\n\n".join(fallback_items)
 
         return (
             final_summary or "Could not generate collection summary.",
             effectively_summarized_articles,
         )
+
+    async def synthesize_one_line_take(
+        self,
+        collection_summaries: dict[str, str],
+        previous_digests_context: Optional[str] = None,
+    ) -> str:
+        valid_summaries = {
+            name: summary
+            for name, summary in collection_summaries.items()
+            if summary
+            and not summary.startswith("[ERROR:")
+            and not summary.startswith("[Error:")
+            and summary not in {
+                "No new articles found.",
+                "No articles selected for fetching.",
+                "No articles with extractable content.",
+                "No articles with valid summaries.",
+                "No content available for collection summary.",
+            }
+        }
+        if not valid_summaries:
+            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+
+        summaries_text = "\n\n".join(
+            f"## {name}\n{summary}" for name, summary in valid_summaries.items()
+        )
+        context = previous_digests_context or ""
+        prompt = f"""请基于下面的晨报栏目内容，写一句中文 One-line Take。
+要求：
+1. 只写一句话，不要标题；
+2. 直接概括今天 AI 与/或金融市场的共同主线；
+3. 不要使用空泛套话；
+4. 如果某个栏目没有有效内容，不要假装它有内容；
+5. 控制在 45 个中文词以内。
+
+Previous digests context:
+{context}
+
+Today's sections:
+{summaries_text}
+
+One-line Take:"""
+
+        take = await self._summarize_text_content(
+            text_content=summaries_text,
+            prompt=prompt,
+            model_name=self.settings.light_model,
+            title="One-line Take",
+            timeout=120,
+        )
+        if take.startswith("[Error:"):
+            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+        return take.strip().splitlines()[0]
 
     async def filter_article(
         self,

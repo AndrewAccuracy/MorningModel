@@ -1,0 +1,74 @@
+name = "AI Research & Safety Top 10"
+max_age = "last-digest"
+follow_article_links = false
+
+collection_prompt = """
+请输出“AI Research & Safety Top 10”。
+目标是跟踪 AI 顶会/期刊/预印本/AI safety 社区中对研究方向和安全治理有影响的内容。
+
+优先覆盖：
+1. 顶会和高质量预印本中的重要模型、训练、评测、agent、安全与可解释性研究；
+2. AI safety、alignment、evals、red teaming、jailbreak、防滥用、模型行为监测、可控性和治理相关研究；
+3. JMLR、JAIR 等期刊中的机器学习/人工智能基础研究；
+4. 对产业、安全政策、模型部署或未来研究路线有方向性影响的论文。
+
+每条包括：
+1. 原文标题；
+2. 来源；
+3. 2-4 句中文摘要；
+4. 1 句“入选优势”。
+
+排序规则：研究影响力、与 AI safety/alignment 的相关性、是否来自高质量会议/期刊/预印本、方法或结论是否有方向性、是否值得继续跟踪。
+“入选优势”必须说明这条相对于普通研究条目的优势：研究新颖性、AI safety/alignment 相关性、方法影响、评测价值或未来研究方向。
+"""
+
+[llm_settings]
+n_most_important_news = 10
+k_words_each_summary = 150
+
+[filter_settings]
+filter_query = """
+Include only entries that are genuinely relevant to AI research or AI safety.
+Keep:
+- AI safety, alignment, interpretability, robustness, adversarial ML, jailbreaks, red teaming, evaluations, monitoring, scalable oversight
+- frontier model behavior, agents, tool use, reasoning, planning, multimodal models
+- training, inference, data, benchmark, and evaluation work with broad research impact
+- papers from strong venues or journals, or preprints likely to matter for top-conference research discussions
+- governance or risk research grounded in technical AI systems
+Exclude:
+- generic tutorials
+- low-signal opinion posts
+- product announcements with no research contribution
+- narrowly applied ML papers with little connection to AI, safety, or foundation models
+- old conference proceedings index pages without a specific research contribution
+"""
+
+[[feeds]]
+url = "https://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=25"
+name = "arXiv Computer Science AI"
+max_articles = 12
+
+[[feeds]]
+url = "https://export.arxiv.org/api/query?search_query=cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=25"
+name = "arXiv Machine Learning"
+max_articles = 12
+
+[[feeds]]
+url = "https://export.arxiv.org/api/query?search_query=all:%22AI%20safety%22+OR+all:alignment+OR+all:%22model%20evaluation%22+OR+all:%22red%20teaming%22&sortBy=submittedDate&sortOrder=descending&max_results=25"
+name = "arXiv AI Safety & Alignment"
+max_articles = 12
+
+[[feeds]]
+url = "https://www.jmlr.org/jmlr.xml"
+name = "Journal of Machine Learning Research"
+max_articles = 8
+
+[[feeds]]
+url = "https://www.jair.org/index.php/jair/gateway/plugin/WebFeedGatewayPlugin/rss2"
+name = "Journal of Artificial Intelligence Research"
+max_articles = 8
+
+[[feeds]]
+url = "https://www.alignmentforum.org/feed.xml"
+name = "Alignment Forum"
+max_articles = 8

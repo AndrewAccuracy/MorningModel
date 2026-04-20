@@ -7,7 +7,7 @@
 - Confirm the model variables in `.env.local` match your provider.
 - Run `./run.sh`.
 - Confirm the run either sends email or creates `daily-digest-YYYY-MM-DD.md`.
-- Confirm only `AI Top 5`, `Finance Top 5`, and diagnostics are present.
+- Confirm only `AI Top 10`, `AI Research & Safety Top 10`, `Finance Top 10`, and diagnostics are present.
 
 ## Secrets Check
 
@@ -27,7 +27,7 @@
 
 - Confirm the subject is `[Morning Brief] AI + Finance Daily Digest | YYYY-MM-DD`.
 - Confirm the body is Chinese.
-- Confirm both AI and Finance sections render cleanly in the email client.
+- Confirm AI, AI Research & Safety, and Finance sections render cleanly in the email client.
 - Confirm each item includes original title, source, summary, and importance or market impact.
 
 ## Duplicate News Check

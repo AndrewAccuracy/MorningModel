@@ -24,3 +24,30 @@ def test_save_and_load_digest_history(tmp_path, monkeypatch):
 
     context = generator.get_context_for_llm()
     assert "Digest from 2025-01-05" in context
+
+
+def test_parse_multiple_recipient_emails():
+    global_config = GlobalConfig(output_settings=OutputSettings())
+    generator = DocumentGenerator(global_config.output_settings, global_config)
+
+    recipients = generator._parse_recipient_emails(
+        "one@example.com, two@example.com;three@example.com\nfour@example.com"
+    )
+
+    assert recipients == [
+        "one@example.com",
+        "two@example.com",
+        "three@example.com",
+        "four@example.com",
+    ]
+
+
+def test_section_title_distinguishes_ai_research_safety():
+    global_config = GlobalConfig(output_settings=OutputSettings())
+    generator = DocumentGenerator(global_config.output_settings, global_config)
+
+    assert (
+        generator._section_title("AI Research & Safety Top 10")
+        == "AI Research & Safety Top 10"
+    )
+    assert generator._section_title("AI Top 10") == "AI Top 10"

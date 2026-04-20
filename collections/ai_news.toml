@@ -1,19 +1,20 @@
-name = "AI Top 5"
+name = "AI Top 10"
 max_age = "last-digest"
 
 collection_prompt = """
-请输出“AI Top 5”。
+请输出“AI Top 10”。
 每条包括：
 1. 原文标题
 2. 来源
 3. 2-4 句中文摘要
-4. 1 句“为什么重要”
+4. 1 句“入选优势”
 优先选择国际影响力强、信息密度高、方向性强的 AI 新闻。
 排序规则：全球影响力、方向性、信息密度、与产业格局的关系、是否值得今天继续追踪。
+“入选优势”必须说明这条相对于普通 AI 新闻的优势：全球影响力、产业方向、技术/产品变化、竞争格局或后续可追踪性。
 """
 
 [llm_settings]
-n_most_important_news = 5
+n_most_important_news = 10
 k_words_each_summary = 140
 
 [filter_settings]
@@ -41,12 +42,12 @@ name = "OpenAI News"
 max_articles = 10
 
 [[feeds]]
-url = "https://www.anthropic.com/news/rss.xml"
-name = "Anthropic News"
+url = "https://feed.infoq.com/anthropic/"
+name = "InfoQ Anthropic"
 max_articles = 10
 
 [[feeds]]
-url = "https://deepmind.google/discover/blog/rss.xml"
+url = "https://deepmind.google/blog/rss.xml"
 name = "Google DeepMind Blog"
 max_articles = 10
 
@@ -66,6 +67,6 @@ name = "VentureBeat AI"
 max_articles = 15
 
 [[feeds]]
-url = "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml"
-name = "The Verge AI"
+url = "https://www.theverge.com/rss/index.xml"
+name = "The Verge"
 max_articles = 15

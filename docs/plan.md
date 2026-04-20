@@ -5,14 +5,16 @@ This repository has been configured as a daily AI and finance email digest.
 ## What Changed
 
 - Added `collections/ai_news.toml` for international AI news.
+- Added `collections/ai_research_safety.toml` for AI research and safety tracking.
 - Added `collections/finance_news.toml` for global macro and market news.
-- Moved the original sample collections to `.toml.back` so only AI and Finance run by default.
+- Removed the original sample collections so only the active morning brief collections run by default.
 - Updated `config.toml` for Chinese output, OpenAI models, iCloud SMTP, full-article extraction, LLM filtering, and digest prompts.
 - Updated `.github/workflows/daily_digest.yml` to run daily at 23:00 UTC, which is 07:00 Beijing time.
 - Updated the email subject to `[Morning Brief] AI + Finance Daily Digest | YYYY-MM-DD`.
 - Updated markdown generation so the digest contains:
-  - `AI Top 5`
-  - `Finance Top 5`
+  - `AI Top 10`
+  - `AI Research & Safety Top 10`
+  - `Finance Top 10`
   - `One-line Take`
 
 ## Local Run

@@ -21,4 +21,5 @@ if [ ! -x ".venv/bin/python" ]; then
   exit 1
 fi
 
+.venv/bin/python scripts/cleanup_old_data.py --days 90
 .venv/bin/python run_local.py

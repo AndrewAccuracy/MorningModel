@@ -1,19 +1,28 @@
-name = "Finance Top 5"
+name = "Finance Top 10"
 max_age = "last-digest"
+follow_article_links = false
 
 collection_prompt = """
-请输出“Finance Top 5”。
+请输出“Finance Top 10”。
+目标是形成一份偏 FT / WSJ 风格的国际宏观与市场晨报，而不是泛财经杂讯。
+请优先覆盖：
+1. 全球经济与政策主线：央行、利率、通胀、就业、增长、财政、贸易、地缘风险；
+2. 市场走向：美股/全球股市、债券收益率、美元、黄金、原油、大宗商品、信用与波动率；
+3. 影响风险偏好的公司/行业事件：大型科技、金融机构、能源、系统重要企业；
+4. FT、WSJ、CNBC、MarketWatch、Fed、BIS 等来源中能解释“今天市场为什么这样走”的内容。
+
 每条包括：
-1. 原文标题
-2. 来源
-3. 2-4 句中文摘要
-4. 1 句“市场影响/为什么重要”
-优先保留全球宏观、政策、流动性、风险偏好变化相关内容。
-排序规则：市场影响、宏观重要性、风险偏好影响、政策/流动性变化、是否可能影响今日市场叙事。
+1. 原文标题；
+2. 来源；
+3. 2-4 句中文摘要；
+4. 1 句“入选优势”。
+
+排序规则：对全球市场定价的影响、宏观方向性、政策/流动性变化、跨资产联动、是否会影响今日市场叙事。
+“入选优势”必须说明这条相对于普通财经新闻的优势：市场定价影响、宏观方向、政策/流动性变化、跨资产影响或今日市场叙事。
 """
 
 [llm_settings]
-n_most_important_news = 5
+n_most_important_news = 10
 k_words_each_summary = 140
 
 [filter_settings]
@@ -22,27 +31,46 @@ Include only entries that are important for an international finance observer.
 Keep:
 - central banks
 - inflation / rates / labor / GDP
-- major equity, bond, FX, commodity developments
+- major equity, bond, FX, credit, volatility, gold, oil, and commodity developments
 - geopolitical news with market impact
+- global economic outlook and recession / soft-landing risks
+- market direction stories explaining risk-on / risk-off moves
 - major earnings surprises
-- large funding, M&A, capital market events
-- AI-related financial developments
+- large M&A, capital market events, IPOs, or funding rounds only when they affect market narrative
+- AI-related financial developments only when they affect listed companies, capex, funding markets, or market leadership
 Exclude:
 - local low-impact stories
 - company PR with no market significance
 - repetitive commentary
 - personal finance tips
 - sponsored content
+- celebrity real estate and lifestyle stories
+- narrow retirement planning, tax advice, or household budgeting articles
 """
+
+[[feeds]]
+url = "https://www.ft.com/markets?format=rss"
+name = "Financial Times Markets"
+max_articles = 20
+
+[[feeds]]
+url = "https://www.ft.com/global-economy?format=rss"
+name = "Financial Times Global Economy"
+max_articles = 20
+
+[[feeds]]
+url = "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain"
+name = "Wall Street Journal Markets"
+max_articles = 20
+
+[[feeds]]
+url = "https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness"
+name = "Wall Street Journal Business"
+max_articles = 20
 
 [[feeds]]
 url = "https://feeds.content.dowjones.io/public/rss/mw_topstories"
 name = "MarketWatch Top Stories"
-max_articles = 20
-
-[[feeds]]
-url = "https://www.cnbc.com/id/100003114/device/rss/rss.html"
-name = "CNBC Top News"
 max_articles = 20
 
 [[feeds]]
@@ -51,16 +79,16 @@ name = "CNBC Finance"
 max_articles = 20
 
 [[feeds]]
-url = "https://www.imf.org/en/News/RSS"
-name = "IMF News"
+url = "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+name = "CNBC Top News"
+max_articles = 20
+
+[[feeds]]
+url = "https://www.bis.org/doclist/all_pressrels.rss"
+name = "BIS Press Releases"
 max_articles = 10
 
 [[feeds]]
 url = "https://www.federalreserve.gov/feeds/press_all.xml"
 name = "Federal Reserve Press Releases"
-max_articles = 10
-
-[[feeds]]
-url = "https://www.bis.org/list/press_releases/index.rss"
-name = "BIS Press Releases"
 max_articles = 10
