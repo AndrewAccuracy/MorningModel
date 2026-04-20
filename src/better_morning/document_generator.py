@@ -95,6 +95,33 @@ class DocumentGenerator:
         context_parts.append("\n--- End of previous digests ---\n")
         return "\n".join(context_parts)
 
+    def _section_title(self, collection_name: str) -> str:
+        normalized = collection_name.lower()
+        if "ai" in normalized:
+            return "AI Top 5"
+        if "finance" in normalized:
+            return "Finance Top 5"
+        return collection_name
+
+    def _generate_one_line_take(self, collection_summaries: Dict[str, str]) -> str:
+        available_sections = [
+            self._section_title(name)
+            for name, summary in collection_summaries.items()
+            if summary and not summary.startswith("[ERROR:")
+        ]
+        if not available_sections:
+            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+
+        if {"AI Top 5", "Finance Top 5"}.issubset(set(available_sections)):
+            return (
+                "今天重点同时看 AI 产业主线与全球宏观/市场风险偏好变化，继续跟踪大模型基础设施、央行预期和风险资产定价。"
+            )
+        if "AI Top 5" in available_sections:
+            return "今天重点看 AI 产业与政策主线，继续跟踪 frontier models、agents 和算力基础设施变化。"
+        if "Finance Top 5" in available_sections:
+            return "今天重点看全球宏观与市场风险偏好变化，继续跟踪央行预期、利率路径和主要资产定价。"
+        return "今天重点看各栏目中最具国际影响力的新变化，并继续跟踪其后续扩散。"
+
     def generate_markdown_digest(
         self,
         collection_summaries: Dict[str, str],
@@ -104,15 +131,16 @@ class DocumentGenerator:
         fetch_reports: Optional[Dict[str, dict]] = None,
         collection_errors: Optional[Dict[str, str]] = None,
     ) -> str:
-        """Formats the digest with a top-level overview and detailed summaries."""
-        title = f"# Daily Digest - {date.strftime('%Y-%m-%d')}"
+        """Formats the digest with collection sections and a one-line take."""
+        title = f"# AI + Finance Daily Brief - {date.strftime('%Y-%m-%d')}"
 
-        # Build the General Overview from individual collection summaries
-        overview_parts = ["## General Overview"]
+        overview_parts = []
         for collection_name, summary in collection_summaries.items():
-            overview_parts.append(f"\n### {collection_name}\n")
+            overview_parts.append(f"## {self._section_title(collection_name)}\n")
             overview_parts.append(summary)
-        overview_section = "\n".join(overview_parts)
+        overview_parts.append("## One-line Take\n")
+        overview_parts.append(self._generate_one_line_take(collection_summaries))
+        overview_section = "\n\n".join(overview_parts)
 
         # Generate collection errors section (for collections that failed early)
         collection_errors_section = ""
@@ -228,11 +256,19 @@ class DocumentGenerator:
             # Attach only the HTML part
             msg.attach(MIMEText(html_body, "html"))
 
-            with smtplib.SMTP_SSL(
-                self.output_settings.smtp_server, self.output_settings.smtp_port
-            ) as server:
-                server.login(smtp_username, smtp_password)
-                server.send_message(msg)
+            if self.output_settings.smtp_port == 465:
+                with smtplib.SMTP_SSL(
+                    self.output_settings.smtp_server, self.output_settings.smtp_port
+                ) as server:
+                    server.login(smtp_username, smtp_password)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(
+                    self.output_settings.smtp_server, self.output_settings.smtp_port
+                ) as server:
+                    server.starttls()
+                    server.login(smtp_username, smtp_password)
+                    server.send_message(msg)
             print(f"Email digest sent successfully to {recipient_email}")
         except Exception as e:
             print(f"Error sending email digest: {e}")

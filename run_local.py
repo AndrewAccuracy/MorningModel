@@ -21,9 +21,9 @@ if "BETTER_MORNING_LLM_API_KEY" not in os.environ:
 
 # Optional: Set these if you want to test email output locally (requires valid SMTP server and credentials)
 # if "BETTER_MORNING_SMTP_USERNAME" not in os.environ:
-#     os.environ["BETTER_MORNING_SMTP_USERNAME"] = "your_email@example.com"
+#     os.environ["BETTER_MORNING_SMTP_USERNAME"] = "your_icloud_email@icloud.com"
 # if "BETTER_MORNING_SMTP_PASSWORD" not in os.environ:
-#     os.environ["BETTER_MORNING_SMTP_PASSWORD"] = "your_email_password"
+#     os.environ["BETTER_MORNING_SMTP_PASSWORD"] = "your_icloud_app_specific_password"
 
 # Optional: Set this if you want to test GitHub release creation locally.
 # This requires a real token with repo write permissions and your repo slug.

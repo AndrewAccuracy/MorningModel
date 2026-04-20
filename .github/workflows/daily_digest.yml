@@ -3,13 +3,19 @@ name: Daily News Digest
 on:
   workflow_dispatch: # Allows manual triggering
   schedule:
-    - cron: "30 5 * * 1,2,3,4,5" # Runs in working days at 05:30 UTC (7:30 CEST)
-    - cron: "30 6 * * 0,6" # Runs on weekends at 06:30 UTC (8:30 CEST)
+    - cron: "0 23 * * *" # Runs daily at 23:00 UTC (07:00 Beijing time)
     
 env:
   PYTHONUNBUFFERED: "1" # Ensure Python output is unbuffered
   # These will be populated from GitHub Secrets
   BETTER_MORNING_LLM_API_KEY: ${{ secrets.BETTER_MORNING_LLM_API_KEY }}
+  BETTER_MORNING_OPENAI_API_KEY: ${{ secrets.BETTER_MORNING_OPENAI_API_KEY }}
+  BETTER_MORNING_DEEPSEEK_API_KEY: ${{ secrets.BETTER_MORNING_DEEPSEEK_API_KEY }}
+  BETTER_MORNING_GEMINI_API_KEY: ${{ secrets.BETTER_MORNING_GEMINI_API_KEY }}
+  BETTER_MORNING_LLM_PROVIDER: ${{ secrets.BETTER_MORNING_LLM_PROVIDER }}
+  BETTER_MORNING_REASONER_MODEL: ${{ secrets.BETTER_MORNING_REASONER_MODEL }}
+  BETTER_MORNING_LIGHT_MODEL: ${{ secrets.BETTER_MORNING_LIGHT_MODEL }}
+  BETTER_MORNING_FILTER_MODEL: ${{ secrets.BETTER_MORNING_FILTER_MODEL }}
   BETTER_MORNING_SMTP_USERNAME: ${{ secrets.BETTER_MORNING_SMTP_USERNAME }}
   BETTER_MORNING_SMTP_PASSWORD: ${{ secrets.BETTER_MORNING_SMTP_PASSWORD }}
   BETTER_MORNING_RECIPIENT_EMAIL: ${{ secrets.BETTER_MORNING_RECIPIENT_EMAIL }}

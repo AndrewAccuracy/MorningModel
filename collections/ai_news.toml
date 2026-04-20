@@ -1,0 +1,71 @@
+name = "AI Top 5"
+max_age = "last-digest"
+
+collection_prompt = """
+请输出“AI Top 5”。
+每条包括：
+1. 原文标题
+2. 来源
+3. 2-4 句中文摘要
+4. 1 句“为什么重要”
+优先选择国际影响力强、信息密度高、方向性强的 AI 新闻。
+排序规则：全球影响力、方向性、信息密度、与产业格局的关系、是否值得今天继续追踪。
+"""
+
+[llm_settings]
+n_most_important_news = 5
+k_words_each_summary = 140
+
+[filter_settings]
+filter_query = """
+Include only entries that are genuinely important for an international AI observer.
+Keep:
+- frontier models
+- AI agents
+- inference / training infrastructure
+- open-source models with meaningful ecosystem impact
+- AI policy and regulation
+- AI safety and security
+- major funding, acquisitions, strategic partnerships
+Exclude:
+- tutorials
+- small feature launches
+- repetitive commentary
+- low-signal reposts
+- generic product marketing
+"""
+
+[[feeds]]
+url = "https://openai.com/news/rss.xml"
+name = "OpenAI News"
+max_articles = 10
+
+[[feeds]]
+url = "https://www.anthropic.com/news/rss.xml"
+name = "Anthropic News"
+max_articles = 10
+
+[[feeds]]
+url = "https://deepmind.google/discover/blog/rss.xml"
+name = "Google DeepMind Blog"
+max_articles = 10
+
+[[feeds]]
+url = "https://huggingface.co/blog/feed.xml"
+name = "Hugging Face Blog"
+max_articles = 10
+
+[[feeds]]
+url = "https://techcrunch.com/category/artificial-intelligence/feed/"
+name = "TechCrunch AI"
+max_articles = 15
+
+[[feeds]]
+url = "https://venturebeat.com/category/ai/feed/"
+name = "VentureBeat AI"
+max_articles = 15
+
+[[feeds]]
+url = "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml"
+name = "The Verge AI"
+max_articles = 15

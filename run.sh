@@ -1,9 +1,24 @@
 #!/bin/sh
+set -eu
 
-# export BETTER_MORNING_SMTP_USERNAME="federicosimonetta@zoho.com"
-# export BETTER_MORNING_RECIPIENT_EMAIL="federicosimonetta@zoho.com"
-export BETTER_MORNING_SMTP_PASSWORD=$(rbw get "zoho mail app password" 2>/dev/null) # Hide rbw stderr
-export BETTER_MORNING_LLM_API_KEY=$(rbw get deepseek_api_key 2>/dev/null)             # Hide rbw stderr
-export PYTHONPATH=src:$PYTHONPATH                                                   # Add this line
+cd "$(dirname "$0")"
 
-uv run run_local.py
+ENV_FILE=".env.local"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Missing $ENV_FILE. Create it from .env.local.example and fill in your local secrets." >&2
+  exit 1
+fi
+
+set -a
+. "./$ENV_FILE"
+set +a
+
+export PYTHONPATH="src:${PYTHONPATH:-}"
+
+if [ ! -x ".venv/bin/python" ]; then
+  echo "Missing .venv. Run: python3 -m venv .venv && .venv/bin/python -m pip install uv && .venv/bin/uv sync" >&2
+  exit 1
+fi
+
+.venv/bin/python run_local.py

@@ -123,6 +123,81 @@ class Collection(BaseModel):
 GLOBAL_CONFIG_FILE = "config.toml"  # Assuming global config is at project root
 
 
+LLM_PROVIDER_PROFILES = {
+    "openai": {
+        "reasoner_model": "openai/gpt-4o",
+        "light_model": "openai/gpt-4o-mini",
+        "filter_model": "openai/gpt-4o",
+        "api_key_env": "BETTER_MORNING_OPENAI_API_KEY",
+    },
+    "deepseek": {
+        "reasoner_model": "deepseek/deepseek-reasoner",
+        "light_model": "deepseek/deepseek-chat",
+        "filter_model": "deepseek/deepseek-chat",
+        "api_key_env": "BETTER_MORNING_DEEPSEEK_API_KEY",
+    },
+    "gemini": {
+        "reasoner_model": "gemini/gemini-2.5-pro",
+        "light_model": "gemini/gemini-2.5-flash",
+        "filter_model": "gemini/gemini-2.5-flash",
+        "api_key_env": "BETTER_MORNING_GEMINI_API_KEY",
+    },
+}
+
+
+def infer_llm_provider() -> str:
+    """Infer provider from explicit choice or the single filled provider key."""
+    explicit_provider = os.getenv("BETTER_MORNING_LLM_PROVIDER", "auto").lower().strip()
+    if explicit_provider and explicit_provider != "auto":
+        return explicit_provider
+
+    configured_providers = [
+        provider
+        for provider, profile in LLM_PROVIDER_PROFILES.items()
+        if os.getenv(profile["api_key_env"])
+    ]
+    if len(configured_providers) == 1:
+        return configured_providers[0]
+
+    generic_api_key = os.getenv("BETTER_MORNING_LLM_API_KEY")
+    if generic_api_key and generic_api_key.startswith("AIza"):
+        return "gemini"
+
+    return "openai"
+
+
+def apply_llm_env_overrides(config: GlobalConfig) -> GlobalConfig:
+    """Allow .env.local to select provider/model without editing tracked config files."""
+    provider = infer_llm_provider()
+    profile = LLM_PROVIDER_PROFILES.get(provider)
+
+    if profile:
+        provider_key_env = profile["api_key_env"]
+        if os.getenv(provider_key_env):
+            config.llm_api_token_env = provider_key_env
+        config.llm_settings.reasoner_model = profile["reasoner_model"]
+        config.llm_settings.light_model = profile["light_model"]
+        config.filter_settings.filter_model = profile["filter_model"]
+    elif provider:
+        print(
+            f"Warning: Unknown BETTER_MORNING_LLM_PROVIDER '{provider}'. Falling back to config.toml model settings."
+        )
+
+    reasoner_model = os.getenv("BETTER_MORNING_REASONER_MODEL")
+    if reasoner_model:
+        config.llm_settings.reasoner_model = reasoner_model
+
+    light_model = os.getenv("BETTER_MORNING_LIGHT_MODEL")
+    if light_model:
+        config.llm_settings.light_model = light_model
+
+    filter_model = os.getenv("BETTER_MORNING_FILTER_MODEL")
+    if filter_model:
+        config.filter_settings.filter_model = filter_model
+
+    return config
+
+
 def load_global_config(path: str = GLOBAL_CONFIG_FILE) -> GlobalConfig:
     try:
         if not os.path.exists(path):
@@ -133,6 +208,7 @@ def load_global_config(path: str = GLOBAL_CONFIG_FILE) -> GlobalConfig:
         else:
             data = toml.load(path)
             config = GlobalConfig(**data)
+        config = apply_llm_env_overrides(config)
 
         # After loading, immediately try to resolve the API key
         try:
@@ -191,6 +267,11 @@ def load_collection(collection_path: str, global_config: GlobalConfig) -> Collec
                 overrides.llm_settings.model_dump(exclude_unset=True)
             )
         resolved_llm_settings = LLMSettings(**resolved_llm_settings_data)
+        resolved_global_config = apply_llm_env_overrides(global_config)
+        resolved_llm_settings.reasoner_model = (
+            resolved_global_config.llm_settings.reasoner_model
+        )
+        resolved_llm_settings.light_model = resolved_global_config.llm_settings.light_model
 
         # After resolving the model, resolve and set the API key for it.
         try:
@@ -230,6 +311,9 @@ def load_collection(collection_path: str, global_config: GlobalConfig) -> Collec
                 overrides.filter_settings.model_dump(exclude_unset=True)
             )
         resolved_filter_settings = FilterSettings(**resolved_filter_settings_data)
+        resolved_filter_settings.filter_model = (
+            resolved_global_config.filter_settings.filter_model
+        )
 
         # Construct the final Collection object with resolved settings
         return Collection(

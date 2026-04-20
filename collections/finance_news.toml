@@ -1,0 +1,66 @@
+name = "Finance Top 5"
+max_age = "last-digest"
+
+collection_prompt = """
+请输出“Finance Top 5”。
+每条包括：
+1. 原文标题
+2. 来源
+3. 2-4 句中文摘要
+4. 1 句“市场影响/为什么重要”
+优先保留全球宏观、政策、流动性、风险偏好变化相关内容。
+排序规则：市场影响、宏观重要性、风险偏好影响、政策/流动性变化、是否可能影响今日市场叙事。
+"""
+
+[llm_settings]
+n_most_important_news = 5
+k_words_each_summary = 140
+
+[filter_settings]
+filter_query = """
+Include only entries that are important for an international finance observer.
+Keep:
+- central banks
+- inflation / rates / labor / GDP
+- major equity, bond, FX, commodity developments
+- geopolitical news with market impact
+- major earnings surprises
+- large funding, M&A, capital market events
+- AI-related financial developments
+Exclude:
+- local low-impact stories
+- company PR with no market significance
+- repetitive commentary
+- personal finance tips
+- sponsored content
+"""
+
+[[feeds]]
+url = "https://feeds.content.dowjones.io/public/rss/mw_topstories"
+name = "MarketWatch Top Stories"
+max_articles = 20
+
+[[feeds]]
+url = "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+name = "CNBC Top News"
+max_articles = 20
+
+[[feeds]]
+url = "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+name = "CNBC Finance"
+max_articles = 20
+
+[[feeds]]
+url = "https://www.imf.org/en/News/RSS"
+name = "IMF News"
+max_articles = 10
+
+[[feeds]]
+url = "https://www.federalreserve.gov/feeds/press_all.xml"
+name = "Federal Reserve Press Releases"
+max_articles = 10
+
+[[feeds]]
+url = "https://www.bis.org/list/press_releases/index.rss"
+name = "BIS Press Releases"
+max_articles = 10

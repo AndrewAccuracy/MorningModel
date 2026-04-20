@@ -9,7 +9,16 @@ import time
 import random
 from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
-import magic
+try:
+    import magic
+except ImportError:
+
+    class _MagicFallback:
+        @staticmethod
+        def from_buffer(content: bytes, mime: bool = True) -> str:
+            return ""
+
+    magic = _MagicFallback()
 from pydantic import HttpUrl
 
 from .rss_fetcher import Article
@@ -84,6 +93,13 @@ class ContentExtractor:
             html_content, include_comments=False, include_tables=False
         )
         return text_content.strip() if text_content else None
+
+    def _detect_mime(self, content: bytes, title: str) -> str:
+        try:
+            return magic.from_buffer(content, mime=True)
+        except Exception as e:
+            print(f"Warning: python-magic detection failed for '{title}': {e}")
+            return ""
 
     async def _fetch_with_requests(self, url: str) -> requests.Response:
         """Fetches content using requests, suitable for static pages."""
@@ -207,16 +223,10 @@ class ContentExtractor:
             final_url = response.url
 
             # Use python-magic to detect actual content type from the content
-            try:
-                detected_mime = magic.from_buffer(response.content, mime=True)
-                print(
-                    f"Content analysis for '{article.title}': Header={content_type_header}, Detected={detected_mime}, URL={final_url}"
-                )
-            except Exception as e:
-                print(
-                    f"Warning: python-magic detection failed for '{article.title}': {e}"
-                )
-                detected_mime = ""
+            detected_mime = self._detect_mime(response.content, article.title)
+            print(
+                f"Content analysis for '{article.title}': Header={content_type_header}, Detected={detected_mime}, URL={final_url}"
+            )
 
             # Check for PDF using multiple methods: magic detection, header, and URL
             is_pdf = (
@@ -240,7 +250,7 @@ class ContentExtractor:
             playwright_start_time = time.time()
             print("Falling back to Playwright.")
             if not self.browser:
-                raise RuntimeError("Browser not started. Call start_browser() first.")
+                await self.start_browser()
             page = None
             try:
                 # Limit concurrent browser pages
@@ -372,12 +382,9 @@ class ContentExtractor:
                     follow_article_links=False,  # Don't follow links recursively
                 )
 
-                try:
-                    sub_detected_mime = magic.from_buffer(
-                        sub_response.content, mime=True
-                    )
-                except Exception:
-                    sub_detected_mime = ""
+                sub_detected_mime = self._detect_mime(
+                    sub_response.content, linked_article.title
+                )
 
                 is_pdf = (
                     sub_detected_mime == "application/pdf"

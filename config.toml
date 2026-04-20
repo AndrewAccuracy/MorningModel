@@ -1,16 +1,59 @@
 [llm_settings]
-reasoner_model = "deepseek/deepseek-reasoner"
-light_model = "deepseek/deepseek-chat"
-temperature = 1.0
-output_language = "italian"
-thinking_effort_reasoner = 8192
-thinking_effort_light = 2048
-prompt_template = """Riassumi il seguente articolo includendo i fatti e le opinioni chiave, in esattamente {k_words_each_summary} parole:
+reasoner_model = "openai/gpt-4o"
+light_model = "openai/gpt-4o-mini"
+temperature = 0.3
+output_language = "Chinese"
+thinking_effort_reasoner = "medium"
+thinking_effort_light = "medium"
+prompt_template = """请用中文总结下面文章，要求：
+1. 先给一句标题式总结；
+2. 再给 3-5 句关键信息；
+3. 最后给一句“为什么值得关注”；
+4. 保留公司名、机构名、数字、时间、国家；
+5. 禁止空话、套话、营销口吻；
+6. 全文控制在约 {k_words_each_summary} 个中文词以内。
 
-Titolo: {title}
-Contenuto: {content}
+标题: {title}
+内容: {content}
 
-Riassunto in italiano:"""
+总结："""
+article_selection_prompt_template = """请从下面文章列表中选择最值得进入国际晨报的前 {num_to_select} 条。
+选择依据：全球影响力、方向性、信息密度、政策/产业/市场影响，以及今天是否值得继续跟踪。
+这批文章服务于栏目要求：{collection_prompt}
+
+请只返回合法 JSON，格式为 {{"selected_indices": [1, 2, 3]}}。
+
+{repeated_news_instruction}
+----------------
+Previous digests:
+{context_section}
+
+----------------
+Articles:
+{articles_str}
+"""
+collection_summary_prompt_template = """你是“AI + Finance 国际晨报邮件系统”的主编。
+今天日期：{today}
+
+请基于下面的文章摘要，选出 {n_most_important_news} 条最重要新闻，生成一个中文栏目。
+要求：
+1. 严格服从栏目定位：{user_guideline}
+2. 每条必须保留原文标题；
+3. 每条必须包含来源 Markdown 链接，格式类似 ([Source](Link))；
+4. 每条包含 2-4 句中文摘要；
+5. 每条最后补一句“为什么重要”或“市场影响”；
+6. 如果高质量内容不足 {n_most_important_news} 条，宁缺毋滥；
+7. 避免重复 previous digests 里已经覆盖过的旧故事；
+8. 不要写开场白、结语或栏目标题，只输出编号列表。
+
+Previous digests:
+{context_section}
+
+----------------
+Article summaries:
+
+{concatenated_summaries}
+"""
 # Optional: customize the LLM prompts used for article selection,
 # collection overview generation, and boolean filtering.
 # Supported variables:
@@ -19,10 +62,10 @@ Riassunto in italiano:"""
 # - filter_prompt_template: {filter_query}, {title}, {link}, {content}
 
 [content_extraction_settings]
-follow_article_links = false # this is the default
+follow_article_links = true
 
 [filter_settings]
-filter_model = "deepseek/deepseek-reasoner"
+filter_model = "openai/gpt-4o"
 
 # Number of previous digests used as context for article relevance decisions
 # This helps avoid repeating similar news and provides better context for relevance decisions
@@ -30,5 +73,5 @@ context_digest_size = 4
 
 [output_settings]
 output_type = "email"         # Options: "github_release", "email" (github_release is not working)
-smtp_server = "smtp.zoho.com" # Required if output_type is "email"
-smtp_port = 465               # Required if output_type is "email"
+smtp_server = "smtp.mail.me.com" # iCloud Mail SMTP server
+smtp_port = 587                  # iCloud uses STARTTLS on port 587

@@ -38,8 +38,6 @@ async def process_collection(
     skipped_sources = set()
 
     try:
-        await content_extractor.start_browser()
-
         # 1. Fetch new RSS articles
         new_articles = rss_fetcher.fetch_articles(
             collection_config.name, collection_config.max_age
@@ -323,7 +321,7 @@ async def main():
                 f.write(final_markdown_digest)
             print(f"Digest saved to daily-digest-{today.strftime('%Y-%m-%d')}.md")
         else:
-            subject = f"Daily News Digest - {today.strftime('%Y-%m-%d')}"
+            subject = f"[Morning Brief] AI + Finance Daily Digest | {today.strftime('%Y-%m-%d')}"
             document_generator.send_via_email(
                 subject, final_markdown_digest, recipient_email
             )
