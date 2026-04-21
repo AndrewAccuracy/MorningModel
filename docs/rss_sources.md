@@ -9,6 +9,12 @@
 - TechCrunch AI: `https://techcrunch.com/category/artificial-intelligence/feed/`
 - VentureBeat AI: `https://venturebeat.com/category/ai/feed/`
 - The Verge: `https://www.theverge.com/rss/index.xml`
+- Medium Artificial Intelligence: `https://medium.com/feed/tag/artificial-intelligence`
+- Medium Generative AI: `https://medium.com/feed/tag/generative-ai`
+- Towards Data Science: `https://towardsdatascience.com/feed`
+- Latent Space: `https://www.latent.space/feed`
+- Interconnects: `https://www.interconnects.ai/feed`
+- One Useful Thing: `https://www.oneusefulthing.org/feed`
 
 ## AI Research & Safety
 
@@ -18,6 +24,12 @@
 - Journal of Machine Learning Research: `https://www.jmlr.org/jmlr.xml`
 - Journal of Artificial Intelligence Research: `https://www.jair.org/index.php/jair/gateway/plugin/WebFeedGatewayPlugin/rss2`
 - Alignment Forum: `https://www.alignmentforum.org/feed.xml`
+- Medium AI Safety: `https://medium.com/feed/tag/ai-safety`
+- Medium Machine Learning Research: `https://medium.com/feed/tag/machine-learning-research`
+- Medium LLM: `https://medium.com/feed/tag/llm`
+- AI Snake Oil: `https://www.aisnakeoil.com/feed`
+- Interconnects: `https://www.interconnects.ai/feed`
+- Understanding AI: `https://www.understandingai.org/feed`
 
 ## Finance
 
@@ -30,9 +42,20 @@
 - CNBC Top News: `https://www.cnbc.com/id/100003114/device/rss/rss.html`
 - BIS Press Releases: `https://www.bis.org/doclist/all_pressrels.rss`
 - Federal Reserve Press Releases: `https://www.federalreserve.gov/feeds/press_all.xml`
+- Medium Macroeconomics: `https://medium.com/feed/tag/macroeconomics`
+- Medium Finance: `https://medium.com/feed/tag/finance`
+- Medium Investing: `https://medium.com/feed/tag/investing`
+- Apricitas Economics: `https://www.apricitas.io/feed`
+- The Overshoot: `https://theovershoot.co/feed`
+- Net Interest: `https://www.netinterest.co/feed`
+- Noahpinion: `https://www.noahpinion.blog/feed`
 
 ## Tuning Guidance
 
-Keep the first version intentionally small. If a feed repeatedly fails, duplicates other sources, or produces low-signal stories, move it out before adding more sources.
+If a feed repeatedly fails, duplicates other sources, or produces low-signal stories, move it out before adding more sources.
 
 FT and WSJ feeds are useful high-signal market sources, but their article bodies may be paywalled. The digest should treat their public RSS titles and summaries as signals, then rely on accessible market and official sources for additional detail where needed.
+
+Medium tags can be useful for discovery, but they are noisy and more exposed to low-quality or adversarial content. Keep their `max_articles` values modest and use strict per-feed `filter_query` rules.
+
+Substack/newsletter feeds are useful for analysis and interpretation, but they are still untrusted input. The main pipeline wraps and filters their content before sending it to the LLM.

@@ -23,6 +23,7 @@ from pydantic import HttpUrl
 
 from .rss_fetcher import Article
 from .config import ContentExtractionSettings
+from .prompt_security import sanitize_untrusted_text
 
 
 class ContentExtractor:
@@ -196,7 +197,7 @@ class ContentExtractor:
             print(
                 f"Info: Using RSS summary for '{article.title}' as it has {len(article.summary.split())} words (≥400)."
             )
-            article.content = article.summary
+            article.content = sanitize_untrusted_text(article.summary)
             article.content_type = "text/plain"
             return [article]
 
@@ -289,7 +290,7 @@ class ContentExtractor:
 
         if not html_content:
             article.content = (
-                article.summary
+                sanitize_untrusted_text(article.summary)
             )  # Fallback to summary if all fetching fails
             return [article]
 
@@ -302,7 +303,7 @@ class ContentExtractor:
         )
 
         # Set the main article content
-        article.content = main_text_content or article.summary
+        article.content = sanitize_untrusted_text(main_text_content or article.summary)
         article.content_type = "text/plain"
 
         # Determine whether to follow links: use article's setting first, then collection's setting
@@ -402,11 +403,13 @@ class ContentExtractor:
                     sub_html_content = sub_response.text
                     sub_text_content = self._extract_from_html(sub_html_content)
                     if sub_text_content:
-                        linked_article.content = sub_text_content
+                        linked_article.content = sanitize_untrusted_text(
+                            sub_text_content
+                        )
                         linked_article.content_type = "text/plain"
 
                         if merge_linked_content:
-                            linked_texts.append(sub_text_content)
+                            linked_texts.append(linked_article.content)
 
                         # Try to extract a better title from the linked page
                         sub_soup = BeautifulSoup(sub_html_content, "html.parser")
@@ -422,7 +425,7 @@ class ContentExtractor:
         if merge_linked_content and linked_texts:
             merged_content = "\n\n".join([article.content or ""] + linked_texts).strip()
             if merged_content:
-                article.content = merged_content
+                article.content = sanitize_untrusted_text(merged_content)
                 article.content_type = "text/plain"
             overall_duration = time.time() - overall_start_time
             print(

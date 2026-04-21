@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import re
 
 from .config import RSSFeed
+from .prompt_security import sanitize_untrusted_text
 
 
 class Article(BaseModel):
@@ -464,12 +465,12 @@ class RSSFetcher:
 
                     article = Article(
                         id=article_id,
-                        title=entry.title,
+                        title=sanitize_untrusted_text(entry.title),
                         link=HttpUrl(article_link),
                         source_url=feed_config.url,
                         feed_name=feed_config.name,
                         published_date=published_date,
-                        summary=summary_text,
+                        summary=sanitize_untrusted_text(summary_text),
                         follow_article_links=feed_config.follow_article_links,
                         filter_query=feed_config.filter_query,
                         filter_model=feed_config.filter_model,

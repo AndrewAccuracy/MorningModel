@@ -16,4 +16,5 @@ history
 daily-*
 debug
 run.log
+run.err.log
 .env.local

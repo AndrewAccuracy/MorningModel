@@ -70,3 +70,59 @@ max_articles = 15
 url = "https://www.theverge.com/rss/index.xml"
 name = "The Verge"
 max_articles = 15
+
+[[feeds]]
+url = "https://medium.com/feed/tag/artificial-intelligence"
+name = "Medium Artificial Intelligence"
+max_articles = 12
+follow_article_links = false
+filter_query = """
+Include only high-signal Medium articles about AI that matter for an international AI observer.
+Keep:
+- frontier models, agents, AI infrastructure, open-source ecosystem shifts, AI policy, AI security, and major platform changes
+- essays with original analysis, concrete evidence, useful numbers, or clear industry implications
+Exclude:
+- beginner tutorials, prompt lists, generic productivity tips, generic ChatGPT use cases, thin opinion posts, and promotional content
+"""
+
+[[feeds]]
+url = "https://medium.com/feed/tag/generative-ai"
+name = "Medium Generative AI"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only Medium generative AI articles with strategic, technical, product, policy, or market significance.
+Exclude beginner tutorials, generic tool roundups, prompt hacks, marketing posts, and repetitive commentary.
+"""
+
+[[feeds]]
+url = "https://towardsdatascience.com/feed"
+name = "Towards Data Science"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only Towards Data Science articles that are relevant to AI industry direction, model behavior, applied AI systems, evaluation, deployment, or data/ML infrastructure.
+Exclude basic coding tutorials, narrow notebook walkthroughs, and low-impact how-to posts.
+"""
+
+[[feeds]]
+url = "https://www.latent.space/feed"
+name = "Latent Space"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.interconnects.ai/feed"
+name = "Interconnects"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.oneusefulthing.org/feed"
+name = "One Useful Thing"
+max_articles = 8
+follow_article_links = false
+filter_query = """
+Include only posts with broader AI product, labor, education, policy, or adoption implications.
+Exclude narrow personal experiments unless they reveal a meaningful AI capability, adoption pattern, or risk.
+"""

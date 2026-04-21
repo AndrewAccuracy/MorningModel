@@ -3,6 +3,7 @@
 MorningModel is an AI-assisted daily email brief for international AI and finance news.
 
 It pulls high-signal RSS sources, filters noisy items, summarizes articles with an LLM provider of your choice, and sends a Chinese morning email through iCloud SMTP.
+Sources include official feeds, major media, research feeds, Medium tags, and selected Substack/newsletter feeds.
 
 ## What You Get
 
@@ -124,6 +125,12 @@ max_articles = 20
 
 Use `collections/ai_news.toml` for AI industry/news sources, `collections/ai_research_safety.toml` for AI research and safety sources, and `collections/finance_news.toml` for finance and market sources.
 
+The source mix combines official feeds, research feeds, mainstream media, and selected open-platform analysis. Noisy sources can be narrowed with per-feed `filter_query` rules.
+
+## Security Guardrails
+
+RSS items, web pages, PDFs, and previous digest history are treated as untrusted input. The pipeline normalizes source text, wraps untrusted content before LLM calls, filters suspicious items, and checks model outputs for signs of prompt-injection influence. These guardrails reduce risk, but curated sources and careful secret handling are still required.
+
 ## Local Run
 
 The normal local command is:
@@ -132,7 +139,13 @@ The normal local command is:
 ./run.sh
 ```
 
-Each run first prunes local data older than 90 days through `scripts/cleanup_old_data.py`. Article history is already kept short by the app's normal history retention, but this cleanup also trims old JSON history records, removes stale generated digest/debug files, and truncates `run.log` / `run.err.log` if either grows beyond 5 MB.
+Each run clears the previous `run.log` / `run.err.log` files before writing new output, then prunes local data older than 90 days through `scripts/cleanup_old_data.py`. Article history is already kept short by the app's normal history retention, but this cleanup also trims old JSON history records and removes stale generated digest/debug files.
+
+If you want to keep old logs for debugging, run with:
+
+```bash
+BETTER_MORNING_CLEAR_LOGS_ON_RUN=0 ./run.sh
+```
 
 If email credentials are missing or delivery fails, the app writes a local markdown digest named like:
 
@@ -140,47 +153,35 @@ If email credentials are missing or delivery fails, the app writes a local markd
 daily-digest-YYYY-MM-DD.md
 ```
 
-## macOS Daily Schedule
-
-For the lightest local automation, use a macOS LaunchAgent. This does not keep Python running in the background; macOS wakes it on a fixed interval, runs `run.sh`, then exits.
-
-The current LaunchAgent is:
-
-```text
-~/Library/LaunchAgents/com.hy.better-morning.plist
-```
-
-It currently runs this script once every 5 days:
-
-```text
-/Users/hy/Desktop/Good_morning/better-morning/run.sh
-```
-
-Logs are written to:
-
-```text
-/Users/hy/Desktop/Good_morning/better-morning/run.log
-/Users/hy/Desktop/Good_morning/better-morning/run.err.log
-```
-
-Useful commands:
+For local automation, use:
 
 ```bash
-# Check status
-launchctl print gui/$(id -u)/com.hy.better-morning
-
-# Run once immediately for testing
-launchctl kickstart -k gui/$(id -u)/com.hy.better-morning
-
-# Disable/unload the schedule
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.hy.better-morning.plist
-
-# Reload after editing the plist
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.hy.better-morning.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hy.better-morning.plist
+./run.sh --scheduled
 ```
 
-To change the cadence, edit the `StartInterval` value in the plist, then reload it with the commands above. The current value is `432000` seconds, equal to 5 days.
+`run.sh --scheduled` is a lightweight guarded mode. It checks `history/scheduler_state.json` and only runs the full digest when the configured interval is due. By default the interval is 5 days; override it with:
+
+```bash
+BETTER_MORNING_RUN_INTERVAL_DAYS=1 ./run.sh --scheduled
+```
+
+The scheduler state file is overwritten on each scheduled attempt rather than appended, so it stays small. If the Mac is off exactly when the 5-day interval becomes due, the next scheduled check after reboot/login will see that `last_success_at + interval` has passed and will run the digest.
+
+On macOS, avoid placing the automated checkout under privacy-protected folders such as `Desktop` or `Documents` unless you explicitly grant the background process access in System Settings. LaunchAgents may fail with `Operation not permitted` when they try to execute or read scripts in those folders. A path such as `~/Code/better-morning` or `~/.local/share/better-morning` is usually easier for local automation.
+
+## macOS Local Schedule
+
+For local automation on macOS, use a LaunchAgent that periodically runs:
+
+```bash
+./run.sh --scheduled
+```
+
+The recommended pattern is a frequent lightweight check, not a long one-shot timer:
+
+`StartInterval = 43200` asks macOS to check roughly every 12 hours, and `RunAtLoad = true` asks it to check after login/load. The expensive digest still runs only when `run.sh --scheduled` determines that the configured digest interval is due.
+
+To change the digest cadence, prefer setting `BETTER_MORNING_RUN_INTERVAL_DAYS` for `run.sh --scheduled` instead of making the LaunchAgent interval very long.
 
 ## GitHub Actions
 
@@ -207,6 +208,7 @@ Recommended GitHub Actions secrets:
 - Global settings live in `config.toml`.
 - Source lists live in `docs/rss_sources.md`.
 - Run and deployment checks live in `docs/test_checklist.md`.
+- Prompt-injection and untrusted-content handling lives in `src/better_morning/prompt_security.py`.
 - The app relies on `litellm`, `feedparser`, `trafilatura`, and Playwright for its news pipeline.
 
 ## Attribution

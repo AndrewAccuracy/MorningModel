@@ -72,3 +72,55 @@ max_articles = 8
 url = "https://www.alignmentforum.org/feed.xml"
 name = "Alignment Forum"
 max_articles = 8
+
+[[feeds]]
+url = "https://medium.com/feed/tag/ai-safety"
+name = "Medium AI Safety"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only Medium posts that make a substantive AI safety, alignment, evals, interpretability, robustness, red-teaming, governance, or deployment-risk argument.
+Exclude generic AI ethics commentary, vague risk essays, tutorials, and posts without concrete technical or policy substance.
+"""
+
+[[feeds]]
+url = "https://medium.com/feed/tag/machine-learning-research"
+name = "Medium Machine Learning Research"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only Medium posts that discuss meaningful AI/ML research with relevance to foundation models, evaluation, agents, safety, interpretability, robustness, or deployment.
+Exclude basic ML tutorials, narrow implementation walkthroughs, and posts with no research contribution.
+"""
+
+[[feeds]]
+url = "https://medium.com/feed/tag/llm"
+name = "Medium LLM"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only LLM posts with research or safety value: evaluation, reasoning, agents, interpretability, robustness, jailbreaks, red teaming, monitoring, data, training, or inference.
+Exclude prompt lists, beginner tutorials, product marketing, and generic commentary.
+"""
+
+[[feeds]]
+url = "https://www.aisnakeoil.com/feed"
+name = "AI Snake Oil"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.interconnects.ai/feed"
+name = "Interconnects"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.understandingai.org/feed"
+name = "Understanding AI"
+max_articles = 8
+follow_article_links = false
+filter_query = """
+Include only posts with AI research, AI safety, policy, model capability, benchmark, infrastructure, or deployment relevance.
+Exclude general tech commentary without a clear AI research or safety connection.
+"""

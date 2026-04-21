@@ -92,3 +92,61 @@ max_articles = 10
 url = "https://www.federalreserve.gov/feeds/press_all.xml"
 name = "Federal Reserve Press Releases"
 max_articles = 10
+
+[[feeds]]
+url = "https://medium.com/feed/tag/macroeconomics"
+name = "Medium Macroeconomics"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only high-signal macroeconomics articles relevant to global markets, central banks, inflation, rates, fiscal policy, trade, labor, growth, or geopolitical market risk.
+Exclude basic explainers, academic summaries with no market relevance, personal opinions without data, and local-only stories.
+"""
+
+[[feeds]]
+url = "https://medium.com/feed/tag/finance"
+name = "Medium Finance"
+max_articles = 10
+follow_article_links = false
+filter_query = """
+Include only finance articles with relevance to global markets, macro policy, liquidity, risk appetite, equities, bonds, FX, commodities, credit, or major capital-market events.
+Exclude personal finance, retirement advice, tax tips, budgeting, crypto hype, sponsored content, and generic investment advice.
+"""
+
+[[feeds]]
+url = "https://medium.com/feed/tag/investing"
+name = "Medium Investing"
+max_articles = 8
+follow_article_links = false
+filter_query = """
+Include only investing articles that explain major market direction, cross-asset moves, macro drivers, systemic risks, or important sector leadership.
+Exclude personal stock picks, newsletters without evidence, personal finance advice, crypto hype, and generic portfolio tips.
+"""
+
+[[feeds]]
+url = "https://www.apricitas.io/feed"
+name = "Apricitas Economics"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://theovershoot.co/feed"
+name = "The Overshoot"
+max_articles = 10
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.netinterest.co/feed"
+name = "Net Interest"
+max_articles = 8
+follow_article_links = false
+
+[[feeds]]
+url = "https://www.noahpinion.blog/feed"
+name = "Noahpinion"
+max_articles = 8
+follow_article_links = false
+filter_query = """
+Include only posts with macro, markets, industrial policy, technology economics, geopolitics, growth, trade, labor, or capital-allocation relevance.
+Exclude domestic politics commentary unless it has clear market or macro implications.
+"""
