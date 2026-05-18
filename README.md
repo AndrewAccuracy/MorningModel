@@ -3,7 +3,7 @@
 <p align="center"><sub>Adapted from <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> — configurable RSS collections, article extraction, LLM summarization, digest history, and scheduled delivery. MorningModel is the focused <b>AI + Finance international morning brief</b> edition.</sub></p>
 
 <p align="center">
-  <img src="docs/assets/morningmodel-banner.svg" alt="MorningModel — AI + Finance daily brief" width="100%" />
+  <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — AI + Finance daily brief" width="100%" />
 </p>
 
 > **RSS is the firehose. Your inbox is the finish line.** MorningModel is an AI-assisted daily email brief — it pulls high-signal RSS sources across AI industry, AI research & safety, and global finance, filters noisy items, summarizes with the LLM provider you already pay for, and ships a **Chinese morning email** through iCloud SMTP. **41 curated feeds** across **3 collections** · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · deduped with `last-digest` history · prompt-injection guardrails on every untrusted byte · local `./run.sh` or **GitHub Actions at 07:00 Beijing time**.

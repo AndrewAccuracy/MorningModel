@@ -3,7 +3,7 @@
 <p align="center"><sub>基于 <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> 改造：保留可配置 RSS collection、正文抽取、LLM 摘要、历史记录和定时投递能力；MorningModel 是面向 <b>AI + Finance 国际晨报</b> 的专门版本。</sub></p>
 
 <p align="center">
-  <img src="docs/assets/morningmodel-banner.svg" alt="MorningModel — AI + Finance daily brief" width="100%" />
+  <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — AI + Finance daily brief" width="100%" />
 </p>
 
 > **RSS 是信息洪流，收件箱才是终点。** MorningModel 会从 AI 产业、AI 研究与安全、全球金融市场的高信号 RSS 源中抓取内容，过滤低质量条目，用你已经配置好的 LLM provider 生成中文晨报，并通过 iCloud SMTP 发到邮箱。**41 个精选信息源** · **3 个栏目** · **3 个 LLM 提供商**（OpenAI · DeepSeek · Gemini）· `last-digest` 去重 · 对所有外部内容做 prompt-injection 防护 · 本地 `./run.sh` 或 GitHub Actions 每天北京时间 07:00 自动运行。
