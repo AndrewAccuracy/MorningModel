@@ -15,6 +15,12 @@ from .prompt_security import (
     wrap_untrusted,
 )
 from .rss_fetcher import Article
+from .article_utils import (
+    estimate_article_quality_signals,
+    extract_domain,
+    infer_source_scores,
+    title_similarity,
+)
 
 
 # Rough estimate: 1 token = 4 characters (common for English text)
@@ -111,6 +117,11 @@ class LLMSummarizer:
         if not articles:
             return []
 
+        articles = self._prepare_candidate_articles(articles)
+        if not articles:
+            print("No candidate articles remained after quality and dedup filtering.")
+            return []
+
         # Determine the number of articles to select: 3x the number for the final summary,
         # but not more than the total number of available articles.
         num_to_select = min(len(articles), 3 * self.settings.n_most_important_news)
@@ -141,8 +152,9 @@ class LLMSummarizer:
                 if article.summary
                 else ""
             )
+            credibility, readership = self._source_scores(article)
             article_lines.append(
-                f"{i + 1}. {title_text} ({article.published_date}){summary_text[:120]}"
+                f"{i + 1}. {title_text} ({article.published_date}, credibility={credibility}/5, reach={readership}/5){summary_text[:120]}"
             )
         if not article_lines:
             print("Warning: All candidate articles looked suspicious. Selecting none.")
@@ -230,14 +242,88 @@ Articles:
 
         except Exception as e:
             print(f"Error during LLM article selection: {e}")
-            # Fallback: return the most recent 'n' articles if LLM selection fails
+            # Fallback: return the highest-quality and most recent articles if LLM selection fails
             print(
-                f"Falling back to selecting the {num_to_select} most recent articles."
+                f"Falling back to selecting the best {num_to_select} pre-ranked articles."
             )
-            sorted_articles = sorted(
-                articles, key=lambda a: a.published_date, reverse=True
+            return articles[:num_to_select]
+
+    def _source_scores(self, article: Article) -> tuple[int, int]:
+        domain = extract_domain(str(article.link))
+        credibility_override = getattr(article, "credibility_tier", None)
+        readership_override = getattr(article, "readership_tier", None)
+        return infer_source_scores(
+            domain=domain,
+            feed_name=article.feed_name,
+            credibility_override=credibility_override,
+            readership_override=readership_override,
+        )
+
+    def _article_priority_score(self, article: Article) -> float:
+        credibility, readership = self._source_scores(article)
+        speculative, low_signal = estimate_article_quality_signals(
+            article.title, article.summary
+        )
+
+        recency_score = 0.0
+        if article.published_date:
+            try:
+                hours_old = max(
+                    0.0,
+                    (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - article.published_date.astimezone(datetime.timezone.utc)
+                    ).total_seconds()
+                    / 3600,
+                )
+                recency_score = max(0.0, 2.0 - min(hours_old / 24, 2.0))
+            except Exception:
+                recency_score = 0.0
+
+        summary_len = len((article.summary or "").split())
+        information_density = min(summary_len / 80, 1.5)
+
+        score = credibility * 3.0 + readership * 2.0 + recency_score + information_density
+        if speculative:
+            score -= 2.0
+        if low_signal:
+            score -= 4.0
+        return score
+
+    def _prepare_candidate_articles(self, articles: List[Article]) -> List[Article]:
+        ranked = []
+        for article in articles:
+            credibility, readership = self._source_scores(article)
+            speculative, low_signal = estimate_article_quality_signals(
+                article.title, article.summary
             )
-            return sorted_articles[:num_to_select]
+
+            # Hard gate obviously weak candidates before they reach the expensive LLM step.
+            if low_signal and credibility <= 2:
+                print(f"Skipping low-signal candidate: '{article.title}'")
+                continue
+            if speculative and credibility <= 2 and readership <= 1:
+                print(f"Skipping low-trust speculative candidate: '{article.title}'")
+                continue
+
+            ranked.append((self._article_priority_score(article), article))
+
+        ranked.sort(
+            key=lambda item: (item[0], item[1].published_date),
+            reverse=True,
+        )
+
+        deduped: List[Article] = []
+        for _, article in ranked:
+            if any(
+                title_similarity(article.title, existing.title) >= 0.72
+                for existing in deduped
+            ):
+                print(f"Deduplicating repeated story candidate: '{article.title}'")
+                continue
+            deduped.append(article)
+
+        return deduped
 
     def _get_masked_api_key(self) -> str:
         """Returns a masked version of the API key for debugging."""

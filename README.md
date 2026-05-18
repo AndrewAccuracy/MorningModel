@@ -1,72 +1,141 @@
 # MorningModel
 
-MorningModel is an AI-assisted daily email brief for international AI and finance news.
+<p align="center"><sub>Adapted from <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> — configurable RSS collections, article extraction, LLM summarization, digest history, and scheduled delivery. MorningModel is the focused <b>AI + Finance international morning brief</b> edition.</sub></p>
 
-It pulls high-signal RSS sources, filters noisy items, summarizes articles with an LLM provider of your choice, and sends a Chinese morning email through iCloud SMTP.
-Sources include official feeds, major media, research feeds, Medium tags, and selected Substack/newsletter feeds.
+<p align="center">
+  <img src="docs/assets/morningmodel-banner.svg" alt="MorningModel — AI + Finance daily brief" width="100%" />
+</p>
 
-## What You Get
+> **RSS is the firehose. Your inbox is the finish line.** MorningModel is an AI-assisted daily email brief — it pulls high-signal RSS sources across AI industry, AI research & safety, and global finance, filters noisy items, summarizes with the LLM provider you already pay for, and ships a **Chinese morning email** through iCloud SMTP. **41 curated feeds** across **3 collections** · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · deduped with `last-digest` history · prompt-injection guardrails on every untrusted byte · local `./run.sh` or **GitHub Actions at 07:00 Beijing time**.
 
-- `AI Top 10`: frontier models, agents, open-source models, training/inference infrastructure, AI safety, AI policy, funding, M&A, and strategic partnerships.
-- `AI Research & Safety Top 10`: AI research, arXiv papers, AI safety, alignment, evaluations, red teaming, interpretability, and selected journal/community research.
-- `Finance Top 10`: FT/WSJ-style macro and market direction, central banks, inflation, rates, labor, GDP, equities, bonds, FX, commodities, geopolitics, and AI-related capital market news.
-- `One-line Take`: one compact sentence about the main thread, market risk appetite, and what deserves follow-up.
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square" /></a>
+  <a href="#rss-collections"><img alt="Collections" src="https://img.shields.io/badge/collections-3-black?style=flat-square" /></a>
+  <a href="#rss-collections"><img alt="Feeds" src="https://img.shields.io/badge/RSS%20feeds-41-orange?style=flat-square" /></a>
+  <a href="#llm-providers"><img alt="LLM" src="https://img.shields.io/badge/LLM-OpenAI%20%C2%B7%20DeepSeek%20%C2%B7%20Gemini-9b59b6?style=flat-square" /></a>
+  <a href="#quickstart"><img alt="Quickstart" src="https://img.shields.io/badge/quickstart-2%20minutes-green?style=flat-square" /></a>
+  <a href="#architecture"><img alt="Python" src="https://img.shields.io/badge/python-3.13%2B-ff6b35?style=flat-square" /></a>
+</p>
 
-Each selected item ends with `入选优势`, a short editor-style note explaining why that item deserves a slot in the final list.
+<p align="center">
+  <a href="https://github.com/AndrewAccuracy/MorningModel/actions"><img alt="GitHub Actions" src="https://img.shields.io/badge/CI-daily%20digest-5865f2?style=flat-square&logo=githubactions&logoColor=white" /></a>
+  <a href="https://github.com/00sapo/better-morning"><img alt="Upstream" src="https://img.shields.io/badge/upstream-00sapo%2Fbetter--morning-8e44ad?style=flat-square" /></a>
+  <a href="#output"><img alt="Output" src="https://img.shields.io/badge/output-iCloud%20email%20%C2%B7%20.md-f39c12?style=flat-square" /></a>
+  <a href="#six-load-bearing-ideas"><img alt="Security" src="https://img.shields.io/badge/prompt--injection-guarded-1abc9c?style=flat-square" /></a>
+</p>
 
-## Quick Start
+<p align="center">
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="docs/assets/morningmodel-banner.html">Open HTML banner design</a>
+</p>
 
-Install dependencies:
+---
+
+## What lands in your inbox
+
+Every successful run produces four sections — three ranked Top 10 lists plus a single-sentence editor's take. Each selected item ends with **入选优势**, a short note on why it earned a slot.
+
+<p align="center">
+  <img src="docs/assets/morningmodel-email-preview.png" alt="MorningModel email output preview" width="100%" />
+</p>
+
+| Section | What it covers |
+|---|---|
+| **AI Top 10** | Frontier models, agents, open-source models, training/inference infrastructure, AI safety, AI policy, funding, M&A, and strategic partnerships. |
+| **AI Research & Safety Top 10** | arXiv papers, AI safety, alignment, evaluations, red teaming, interpretability, and selected journal/community research. |
+| **Finance Top 10** | FT/WSJ-style macro and market direction, central banks, inflation, rates, labor, GDP, equities, bonds, FX, commodities, geopolitics, and AI-related capital market news. |
+| **One-line Take** | One compact sentence on the main thread, market risk appetite, and what deserves follow-up today. |
+
+---
+
+## Why this exists
+
+International AI and finance news does not arrive in a neat stack — it arrives as **41 parallel RSS firehoses** (official blogs, arXiv, FT/WSJ, Fed/BIS, Medium tags, Substacks). Reading everything is impossible; reading nothing means missing the one story that moves your week.
+
+MorningModel's bet is simple:
+
+| Manual curation | MorningModel |
+|---|---|
+| Open 20 tabs every morning | One email at 07:00 Beijing time |
+| Repeat the same story three days running | `last-digest` history dedupes across runs |
+| Summarize in your head | LLM writes Chinese summaries with **入选优势** |
+| Hope RSS titles are enough | Playwright + trafilatura fetch full article bodies when needed |
+| Trust every newsletter's tone | Per-feed `filter_query` + prompt-injection guardrails |
+
+**The digest is the product.** When the pipeline finishes, the artifact is what your audience (you) actually reads — not a draft folder of links.
+
+We stand on one open-source shoulder:
+
+- [**`00sapo/better-morning`**](https://github.com/00sapo/better-morning) — the configurable RSS collection system, article extraction pipeline, LLM summarization flow, history handling, email output, and GitHub Actions structure. MorningModel extends it with AI + Finance source packs, Chinese editorial prompts, security hardening, and scheduled local runs.
+
+---
+
+## At a glance
+
+| | What you get |
+|---|---|
+| **3 collections** | `AI Top 10` · `AI Research & Safety Top 10` · `Finance Top 10` — each with its own `collection_prompt`, filter rules, and feed list. |
+| **41 RSS feeds** | Official AI blogs, arXiv queries, FT/WSJ/CNBC, Fed/BIS press releases, Medium tags, and selected Substacks — see [`docs/rss_sources.md`](docs/rss_sources.md). |
+| **3 LLM providers** | OpenAI · DeepSeek · Gemini through LiteLLM — fill one API key, set `BETTER_MORNING_LLM_PROVIDER=auto`, or pin a provider when multiple keys exist. |
+| **Dedup & context** | `max_age = "last-digest"` per collection; last 4 digests fed back as LLM context so the model avoids repeating old stories. |
+| **Full-article extraction** | `trafilatura` + Playwright for pages RSS summaries cannot carry; paywalled FT/WSJ titles still signal, accessible sources fill detail. |
+| **Chinese output** | Summaries, section intros, and **入选优势** lines are Chinese by default (`output_language = "Chinese"` in `config.toml`). |
+| **Email delivery** | iCloud SMTP (`smtp.mail.me.com:587`) — HTML email rendered from markdown via `markdown2`. |
+| **Local fallback** | Missing SMTP credentials → `daily-digest-YYYY-MM-DD.md` written locally. |
+| **Automation** | `./run.sh` locally · `./run.sh --scheduled` with interval guard · GitHub Actions cron `0 23 * * *` UTC (07:00 Beijing). |
+| **Security** | Untrusted RSS/web/PDF content wrapped, normalized, and scanned before every LLM call — see [`src/better_morning/prompt_security.py`](src/better_morning/prompt_security.py). |
+| **License** | GPL-3.0 (inherited from upstream) |
+
+---
+
+## Quickstart
 
 ```bash
+git clone https://github.com/AndrewAccuracy/MorningModel.git
+cd MorningModel
 pip install uv
 uv sync
-```
-
-Create your local secrets file:
-
-```bash
+uv run playwright install --with-deps   # first run only
 cp .env.local.example .env.local
-```
-
-Edit `.env.local`, then run:
-
-```bash
+# edit .env.local — one LLM key + iCloud SMTP credentials
 ./run.sh
 ```
 
-`.env.local` is ignored by git. Do not commit API keys, iCloud app-specific passwords, or recipient addresses.
+**Two minutes to first digest.** Fill one provider key in `.env.local`, set iCloud SMTP (app-specific password), and run. `.env.local` is git-ignored — never commit API keys or passwords.
 
-## LLM Provider Setup
+If email credentials are missing or delivery fails, the run still saves:
 
-MorningModel uses LiteLLM model names and can auto-select OpenAI, DeepSeek, or Gemini.
+```text
+daily-digest-YYYY-MM-DD.md
+```
 
-Fill in one provider key and leave the others empty:
+---
+
+## LLM providers
+
+MorningModel uses [LiteLLM](https://github.com/BerriAI/litellm) model names. Fill **one** key in `.env.local`:
 
 ```bash
 BETTER_MORNING_OPENAI_API_KEY=""
 BETTER_MORNING_DEEPSEEK_API_KEY=""
 BETTER_MORNING_GEMINI_API_KEY=""
-BETTER_MORNING_LLM_PROVIDER="auto"
+BETTER_MORNING_LLM_PROVIDER="auto"   # auto | openai | deepseek | gemini
 ```
 
-If more than one provider key is filled, set:
+If more than one key is set, pin the provider:
 
 ```bash
 BETTER_MORNING_LLM_PROVIDER="openai"
 ```
 
-Supported values are `auto`, `openai`, `deepseek`, and `gemini`.
-
 Default model profiles:
 
-| Provider | Reasoner model | Light model | Filter model |
+| Provider | Reasoner (selection + overview) | Light (per-article summary) | Filter |
 | --- | --- | --- | --- |
-| OpenAI | `openai/gpt-4o` | `openai/gpt-4o-mini` | `openai/gpt-4o` |
-| DeepSeek | `deepseek/deepseek-reasoner` | `deepseek/deepseek-chat` | `deepseek/deepseek-chat` |
-| Gemini | `gemini/gemini-2.5-pro` | `gemini/gemini-2.5-flash` | `gemini/gemini-2.5-flash` |
+| **OpenAI** | `openai/gpt-4o` | `openai/gpt-4o-mini` | `openai/gpt-4o` |
+| **DeepSeek** | `deepseek/deepseek-reasoner` | `deepseek/deepseek-chat` | `deepseek/deepseek-chat` |
+| **Gemini** | `gemini/gemini-2.5-pro` | `gemini/gemini-2.5-flash` | `gemini/gemini-2.5-flash` |
 
-Advanced users can override the defaults:
+Override any slot:
 
 ```bash
 BETTER_MORNING_REASONER_MODEL=""
@@ -74,11 +143,13 @@ BETTER_MORNING_LIGHT_MODEL=""
 BETTER_MORNING_FILTER_MODEL=""
 ```
 
-Leave these empty unless you intentionally want custom LiteLLM model names.
+Leave empty to keep provider defaults.
 
-## Email Setup
+---
 
-The default email transport is iCloud Mail:
+## Email setup
+
+Default transport is iCloud Mail (`config.toml`):
 
 ```toml
 [output_settings]
@@ -87,134 +158,262 @@ smtp_server = "smtp.mail.me.com"
 smtp_port = 587
 ```
 
-Set these in `.env.local`:
+Secrets in `.env.local`:
 
 ```bash
-BETTER_MORNING_SMTP_USERNAME="yourname@icloud.com"
-BETTER_MORNING_SMTP_PASSWORD="your-icloud-app-specific-password"
-BETTER_MORNING_RECIPIENT_EMAIL="yourname@icloud.com,another@example.com"
+BETTER_MORNING_SMTP_USERNAME="yourname@icloud.com"      # also the visible sender
+BETTER_MORNING_SMTP_PASSWORD="your-icloud-app-password" # Apple app-specific password
+BETTER_MORNING_RECIPIENT_EMAIL="you@icloud.com,other@example.com"
 ```
 
-`BETTER_MORNING_SMTP_USERNAME` is both the SMTP login and the visible sender address. For iCloud, use an Apple app-specific password, not your Apple ID password.
-Use a single address or multiple recipients separated by commas, semicolons, or new lines.
+Use commas, semicolons, or newlines for multiple recipients.
 
-## RSS Collections
+---
 
-Active collections:
+## RSS collections
 
-- `collections/ai_news.toml`
-- `collections/ai_research_safety.toml`
-- `collections/finance_news.toml`
+Active collection files — **adding a feed is one `[[feeds]]` block**:
 
-These collections use:
+| Collection | File | Feeds | Focus |
+|---|---|---:|---|
+| **AI Top 10** | [`collections/ai_news.toml`](collections/ai_news.toml) | 13 | Industry news — OpenAI, DeepMind, TechCrunch AI, Latent Space, … |
+| **AI Research & Safety Top 10** | [`collections/ai_research_safety.toml`](collections/ai_research_safety.toml) | 12 | arXiv CS.AI/LG, JMLR, Alignment Forum, AI Snake Oil, … |
+| **Finance Top 10** | [`collections/finance_news.toml`](collections/finance_news.toml) | 16 | FT, WSJ, CNBC, Fed, BIS, Apricitas, Net Interest, … |
+
+Each collection sets:
 
 ```toml
 max_age = "last-digest"
 ```
 
-After a successful run, timestamps are stored under `history/`, so later runs avoid repeating old articles.
+After a successful run, timestamps land under `history/`, so the next run skips articles already covered.
 
-To add or remove sites, edit the relevant collection file and add another `[[feeds]]` block:
+Add a source:
 
 ```toml
 [[feeds]]
 url = "https://example.com/rss.xml"
 name = "Example Source"
 max_articles = 20
+# filter_query = "..."   # optional per-feed LLM boolean filter
 ```
 
-Use `collections/ai_news.toml` for AI industry/news sources, `collections/ai_research_safety.toml` for AI research and safety sources, and `collections/finance_news.toml` for finance and market sources.
+Full source list and tuning notes → [`docs/rss_sources.md`](docs/rss_sources.md).
 
-The source mix combines official feeds, research feeds, mainstream media, and selected open-platform analysis. Noisy sources can be narrowed with per-feed `filter_query` rules.
+Medium tags and newsletters are high-discovery but noisy — keep `max_articles` modest and use strict `filter_query` rules where needed.
 
-## Security Guardrails
+---
 
-RSS items, web pages, PDFs, and previous digest history are treated as untrusted input. The pipeline normalizes source text, wraps untrusted content before LLM calls, filters suspicious items, and checks model outputs for signs of prompt-injection influence. These guardrails reduce risk, but curated sources and careful secret handling are still required.
+## Six load-bearing ideas
 
-## Local Run
+### 1 · Collections are TOML files, not code.
 
-The normal local command is:
+Drop a new `collections/*.toml`, set `name`, `collection_prompt`, `n_most_important_news`, and `[[feeds]]` blocks. `src/main.py` globs every collection on each run. No redeploy beyond restarting the process.
+
+### 2 · Fetch cheap, extract expensive.
+
+RSS titles and summaries arrive first. The reasoner model **selects** which articles deserve a full fetch; only those go through Playwright/trafilatura. When per-feed `filter_query` is enabled, boolean filtering runs before selection — shrinking the LLM surface on noisy Medium tags.
+
+### 3 · History is editorial memory.
+
+`history/*_digest_history.json` and `history/digest_history.json` store what you already shipped. The last **4** digests are injected as LLM context (`context_digest_size` in `config.toml`) so today's Top 10 does not repeat yesterday's front page.
+
+### 4 · 入选优势 is the ranking explained.
+
+Every surviving item gets a one-line **入选优势** — why it beat the other candidates. That line is prompt-enforced in both per-article summaries and the collection overview pass, so the final email reads like an editor's desk, not a link dump.
+
+### 5 · Untrusted input stays untrusted.
+
+RSS bodies, scraped HTML, PDFs, and previous digest text are wrapped in `BEGIN_UNTRUSTED_CONTENT` markers, normalized (control chars, zero-width glyphs), and scanned for injection patterns before any model call. A system prompt tells the model to treat article text as data only. This reduces risk; curated sources and secret hygiene still matter.
+
+### 6 · Same pipeline, three schedulers.
+
+| Mode | Command | When it runs |
+|---|---|---|
+| **Manual** | `./run.sh` | Whenever you invoke it |
+| **Local interval** | `./run.sh --scheduled` | Only when `last_success_at + BETTER_MORNING_RUN_INTERVAL_DAYS` (default **5**) has elapsed |
+| **GitHub Actions** | `workflow_dispatch` or cron `0 23 * * *` UTC | Daily cloud run with `history/` cache restore/save |
+
+`./run.sh --scheduled` is a lightweight guard — macOS LaunchAgents can call it every 12h (`StartInterval = 43200`); the heavy digest still fires only when the interval is due. Prefer `~/Code/better-morning` over `Desktop`/`Documents` for LaunchAgent paths (TCC privacy).
+
+---
+
+## Architecture
+
+```
+┌─────────────────────── run.sh / GitHub Actions ───────────────────────┐
+│  load .env.local secrets · uv sync · playwright browsers (CI only)   │
+└───────────────────────────────┬───────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  src/main.py          │
+                    │  glob collections/*.toml │
+                    └───────────┬───────────┘
+                                │ per collection (parallel asyncio)
+        ┌───────────────────────┼───────────────────────┐
+        ▼                       ▼                       ▼
+ ┌─────────────┐        ┌──────────────┐        ┌─────────────────┐
+ │ RSSFetcher  │        │ LLMSummarizer│        │ ContentExtractor│
+ │ feedparser  │───────►│ LiteLLM      │◄───────│ trafilatura +   │
+ │ last-digest │ select │ select · sum │ fetch  │ Playwright      │
+ │ dedupe      │        │ overview     │        │                 │
+ └─────────────┘        └──────┬───────┘        └─────────────────┘
+                               │ prompt_security wraps untrusted text
+                               ▼
+                    ┌───────────────────────┐
+                    │  DocumentGenerator    │
+                    │  markdown digest +    │
+                    │  One-line Take        │
+                    └───────────┬───────────┘
+                                │
+              ┌─────────────────┴─────────────────┐
+              ▼                                   ▼
+     ┌─────────────────┐               ┌──────────────────┐
+     │  iCloud SMTP    │               │  daily-digest-   │
+     │  HTML email     │               │  YYYY-MM-DD.md   │
+     └─────────────────┘               └──────────────────┘
+                                │
+                                ▼
+                    history/*.json  (articles + digests + scheduler)
+```
+
+| Layer | Stack |
+|---|---|
+| Runtime | Python 3.13+ · `uv` for deps ([`pyproject.toml`](pyproject.toml)) |
+| RSS | `feedparser` · per-collection `[[feeds]]` in TOML |
+| Extraction | `trafilatura` · `playwright` (headless fetch when needed) |
+| LLM | `litellm` — reasoner / light / filter model roles |
+| Security | [`prompt_security.py`](src/better_morning/prompt_security.py) — wrap, normalize, injection heuristics |
+| Output | `markdown2` → HTML email · local `.md` fallback |
+| Config | [`config.toml`](config.toml) (global prompts) + `collections/*.toml` (feeds + filters) |
+| CI | [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml) · `history/` cache between runs |
+| Tests | `pytest` under [`tests/`](tests/) |
+
+---
+
+## Output
+
+| Target | When | Notes |
+|---|---|---|
+| **iCloud email** | `output_type = "email"` and SMTP secrets set | Subject: `[Morning Brief] AI + Finance Daily Digest \| YYYY-MM-DD` |
+| **Local markdown** | SMTP missing or send fails | `daily-digest-YYYY-MM-DD.md` in repo root |
+| **History JSON** | Every successful run | `history/` — powers dedupe and LLM context |
+
+---
+
+## Local automation
 
 ```bash
-./run.sh
-```
-
-Each run clears the previous `run.log` / `run.err.log` files before writing new output, then prunes local data older than 90 days through `scripts/cleanup_old_data.py`. Article history is already kept short by the app's normal history retention, but this cleanup also trims old JSON history records and removes stale generated digest/debug files.
-
-If you want to keep old logs for debugging, run with:
-
-```bash
-BETTER_MORNING_CLEAR_LOGS_ON_RUN=0 ./run.sh
-```
-
-If email credentials are missing or delivery fails, the app writes a local markdown digest named like:
-
-```text
-daily-digest-YYYY-MM-DD.md
-```
-
-For local automation, use:
-
-```bash
-./run.sh --scheduled
-```
-
-`run.sh --scheduled` is a lightweight guarded mode. It checks `history/scheduler_state.json` and only runs the full digest when the configured interval is due. By default the interval is 5 days; override it with:
-
-```bash
+./run.sh                              # run now, clear logs (default)
+BETTER_MORNING_CLEAR_LOGS_ON_RUN=0 ./run.sh   # keep run.log for debugging
+./run.sh --scheduled                  # respect BETTER_MORNING_RUN_INTERVAL_DAYS (default 5)
 BETTER_MORNING_RUN_INTERVAL_DAYS=1 ./run.sh --scheduled
 ```
 
-The scheduler state file is overwritten on each scheduled attempt rather than appended, so it stays small. If the Mac is off exactly when the 5-day interval becomes due, the next scheduled check after reboot/login will see that `last_success_at + interval` has passed and will run the digest.
+Each normal run also prunes local data older than 90 days via [`scripts/cleanup_old_data.py`](scripts/cleanup_old_data.py).
 
-On macOS, avoid placing the automated checkout under privacy-protected folders such as `Desktop` or `Documents` unless you explicitly grant the background process access in System Settings. LaunchAgents may fail with `Operation not permitted` when they try to execute or read scripts in those folders. A path such as `~/Code/better-morning` or `~/.local/share/better-morning` is usually easier for local automation.
+**macOS LaunchAgent pattern:** `RunAtLoad = true` + `StartInterval = 43200` → call `./run.sh --scheduled` from a non-TCC-protected path like `~/Code/better-morning`.
 
-## macOS Local Schedule
-
-For local automation on macOS, use a LaunchAgent that periodically runs:
-
-```bash
-./run.sh --scheduled
-```
-
-The recommended pattern is a frequent lightweight check, not a long one-shot timer:
-
-`StartInterval = 43200` asks macOS to check roughly every 12 hours, and `RunAtLoad = true` asks it to check after login/load. The expensive digest still runs only when `run.sh --scheduled` determines that the configured digest interval is due.
-
-To change the digest cadence, prefer setting `BETTER_MORNING_RUN_INTERVAL_DAYS` for `run.sh --scheduled` instead of making the LaunchAgent interval very long.
+---
 
 ## GitHub Actions
 
-`.github/workflows/daily_digest.yml` supports:
+[`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml):
 
-- Manual runs through `workflow_dispatch`
-- Daily scheduled runs at 23:00 UTC, equal to 07:00 Beijing time
+- **Manual:** `workflow_dispatch`
+- **Scheduled:** `0 23 * * *` UTC = **07:00 Beijing time**
 
-Recommended GitHub Actions secrets:
+Repository secrets:
 
-- One of:
-  - `BETTER_MORNING_OPENAI_API_KEY`
-  - `BETTER_MORNING_DEEPSEEK_API_KEY`
-  - `BETTER_MORNING_GEMINI_API_KEY`
-- Optional when more than one provider key is configured:
-  - `BETTER_MORNING_LLM_PROVIDER`
-- Required for email:
-  - `BETTER_MORNING_SMTP_USERNAME`
-  - `BETTER_MORNING_SMTP_PASSWORD`
-  - `BETTER_MORNING_RECIPIENT_EMAIL`
+| Secret | Required |
+|---|---|
+| One of `BETTER_MORNING_OPENAI_API_KEY` / `DEEPSEEK` / `GEMINI` | ✅ |
+| `BETTER_MORNING_LLM_PROVIDER` | Only if multiple keys set |
+| `BETTER_MORNING_SMTP_USERNAME` | ✅ for email |
+| `BETTER_MORNING_SMTP_PASSWORD` | ✅ for email |
+| `BETTER_MORNING_RECIPIENT_EMAIL` | ✅ for email |
 
-## Project Notes
+`history/` is restored/saved via Actions cache between runs so dedupe survives across days.
 
-- Global settings live in `config.toml`.
-- Source lists live in `docs/rss_sources.md`.
-- Run and deployment checks live in `docs/test_checklist.md`.
-- Prompt-injection and untrusted-content handling lives in `src/better_morning/prompt_security.py`.
-- The app relies on `litellm`, `feedparser`, `trafilatura`, and Playwright for its news pipeline.
+---
 
-## Attribution
+## Roadmap
 
-MorningModel is adapted from [`00sapo/better-morning`](https://github.com/00sapo/better-morning). The original project provides the configurable RSS collection system, article extraction pipeline, LLM summarization flow, history handling, email output, and GitHub Actions structure.
+- [ ] **Telegram / Slack delivery** — second output channel beside email
+- [ ] **Per-recipient collection toggles** — subscribe to AI-only or Finance-only
+- [ ] **Web preview UI** — read today's digest in browser before send
+- [ ] **Source health dashboard** — feed failure rates and auto-disable noisy feeds
+- [ ] **Multi-language output** — English digest variant beside Chinese
+
+---
+
+## Status
+
+Early but real. The closed loop — **fetch RSS → select → extract → summarize → dedupe-aware overview → email** — runs end-to-end locally and on GitHub Actions. Source packs and security guardrails are the highest-leverage knobs; prompt tuning ships iteratively.
+
+| Surface | State |
+|---|---|
+| 3 collections · 41 feeds | ✅ stable |
+| LiteLLM multi-provider | ✅ stable |
+| `last-digest` dedupe + history context | ✅ stable |
+| Full-article extraction (trafilatura + Playwright) | ✅ stable |
+| Prompt-injection guardrails | ✅ stable |
+| iCloud SMTP + `.md` fallback | ✅ stable |
+| `./run.sh --scheduled` interval guard | ✅ stable |
+| GitHub Actions daily cron + history cache | ✅ stable |
+| Telegram / Slack output | ⏳ planned |
+| Web preview UI | ⏳ planned |
+
+---
+
+## Contributing
+
+Issues, PRs, new feeds, tighter `filter_query` rules, and prompt improvements are welcome. Highest-leverage shapes:
+
+- **Add a feed** — one `[[feeds]]` block in the right `collections/*.toml`; document it in [`docs/rss_sources.md`](docs/rss_sources.md).
+- **Tune a collection** — edit `collection_prompt`, `filter_query`, or `n_most_important_news` in the collection file.
+- **Harden security** — extend [`prompt_security.py`](src/better_morning/prompt_security.py) patterns or tests in [`tests/`](tests/).
+- **Fix extraction** — [`content_extractor.py`](src/better_morning/content_extractor.py) for sites that break trafilatura/Playwright.
+
+Run tests before opening a PR:
+
+```bash
+uv run pytest
+```
+
+Operational checklist → [`docs/test_checklist.md`](docs/test_checklist.md).
+
+---
+
+## Project layout
+
+| Path | Role |
+|---|---|
+| [`config.toml`](config.toml) | Global LLM prompts, output settings, context window size |
+| [`collections/*.toml`](collections/) | Per-column feeds, filters, and editorial prompts |
+| [`src/better_morning/`](src/better_morning/) | RSS fetch, extract, summarize, generate, secure |
+| [`src/main.py`](src/main.py) | Orchestrates all collections per run |
+| [`run.sh`](run.sh) | Local entry — env load, cleanup, `run_local.py` |
+| [`scripts/run_if_due.py`](scripts/run_if_due.py) | Scheduled interval guard |
+| [`history/`](history/) | Article timestamps, digest archive, scheduler state |
+| [`docs/rss_sources.md`](docs/rss_sources.md) | Human-readable source catalog |
+| [`docs/assets/morningmodel-banner.html`](docs/assets/morningmodel-banner.html) | HTML design source for the GitHub banner |
+| [`docs/assets/morningmodel-email-preview.png`](docs/assets/morningmodel-email-preview.png) | Real email output preview used in the README |
+
+---
+
+## References & lineage
+
+| Project | Role here |
+|---|---|
+| [**`00sapo/better-morning`**](https://github.com/00sapo/better-morning) | Upstream architecture — RSS collections, extraction, LLM flow, email output, Actions workflow. |
+| [**`BerriAI/litellm`**](https://github.com/BerriAI/litellm) | Unified OpenAI / DeepSeek / Gemini routing. |
+| [**`adbar/trafilatura`**](https://github.com/adbar/trafilatura) | Primary article body extraction. |
+| [**`microsoft/playwright`**](https://github.com/microsoft/playwright) | Headless fetch when RSS content is insufficient. |
+
+---
 
 ## License
 
-This repository is based on GPL v3 licensed code. The GPL v3 license text is preserved in `LICENSE`.
+GPL-3.0 — inherited from [`00sapo/better-morning`](https://github.com/00sapo/better-morning). See [`LICENSE`](LICENSE).

@@ -12,6 +12,7 @@ import re
 
 from .config import RSSFeed
 from .prompt_security import sanitize_untrusted_text
+from .article_utils import title_signature
 
 
 class Article(BaseModel):
@@ -30,6 +31,8 @@ class Article(BaseModel):
     )
     filter_query: Optional[str] = None
     filter_model: Optional[str] = None
+    credibility_tier: Optional[int] = None
+    readership_tier: Optional[int] = None
 
 
 # Custom JSON encoder for datetime objects
@@ -353,6 +356,11 @@ class RSSFetcher:
             article.id: article
             for article in self._load_historical_articles(collection_name)
         }
+        historical_title_signatures = {
+            title_signature(article.title)
+            for article in historical_articles.values()
+            if article.title
+        }
         all_fetched_articles_for_history: List[Article] = list(
             historical_articles.values()
         )
@@ -391,8 +399,13 @@ class RSSFetcher:
 
                 for entry in entries:
                     article_id = entry.link  # Using link as a unique ID
+                    entry_title = sanitize_untrusted_text(getattr(entry, "title", ""))
+                    entry_signature = title_signature(entry_title)
                     # Skip articles already in history (previously selected)
-                    if article_id not in historical_articles:
+                    if (
+                        article_id not in historical_articles
+                        and entry_signature not in historical_title_signatures
+                    ):
                         available_entries.append(entry)
 
                 # Now apply max_articles limit to the filtered entries
@@ -474,6 +487,8 @@ class RSSFetcher:
                         follow_article_links=feed_config.follow_article_links,
                         filter_query=feed_config.filter_query,
                         filter_model=feed_config.filter_model,
+                        credibility_tier=feed_config.credibility_tier,
+                        readership_tier=feed_config.readership_tier,
                     )
                     new_articles.append(article)
                     all_fetched_articles_for_history.append(

@@ -80,6 +80,8 @@ class RSSFeed(BaseModel):
     max_retries: Optional[int] = 3  # Per-feed max retry attempts (default 3)
     filter_query: Optional[str] = None
     filter_model: Optional[str] = None
+    credibility_tier: Optional[int] = None  # 1-5 manual source trust override
+    readership_tier: Optional[int] = None  # 1-5 manual audience reach override
 
 
 # --- Collection-specific overrides (for parsing TOML) ---

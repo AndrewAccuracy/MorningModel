@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="840" viewBox="0 0 1600 840" role="img" aria-labelledby="title desc">
+  <title id="title">MorningModel - AI + Finance daily brief</title>
+  <desc id="desc">A dark cinematic banner for MorningModel, showing a Chinese AI and finance morning email digest generated from RSS feeds and LLM summarization.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#140f0a"/>
+      <stop offset="0.55" stop-color="#21140d"/>
+      <stop offset="1" stop-color="#070707"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="20%" r="55%">
+      <stop offset="0" stop-color="#ff8a3d" stop-opacity="0.42"/>
+      <stop offset="0.42" stop-color="#7a3b19" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#e8dfcf"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1547ff"/>
+      <stop offset="1" stop-color="#0b1a6a"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="28" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f7ddbd" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="840" rx="28" fill="url(#bg)"/>
+  <rect width="1600" height="840" rx="28" fill="url(#glow)"/>
+  <rect x="0" y="0" width="1600" height="840" rx="28" fill="url(#grid)"/>
+
+  <g opacity="0.58">
+    <path d="M120 106H1480" stroke="#f7ddbd" stroke-opacity="0.12"/>
+    <path d="M120 725H1480" stroke="#f7ddbd" stroke-opacity="0.12"/>
+    <text x="120" y="83" fill="#b7a48d" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" letter-spacing="5">MORNINGMODEL ? MANIFESTO ? 2026 EDITION</text>
+    <text x="1028" y="83" fill="#b7a48d" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" letter-spacing="5">LOCAL RSS ? LLM ? EMAIL ? ZERO NOISE</text>
+  </g>
+
+  <g transform="translate(120 156)">
+    <rect x="0" y="0" width="138" height="34" rx="17" fill="#25170e" stroke="#d36b2c" stroke-opacity="0.45"/>
+    <text x="24" y="23" fill="#f08b4f" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="2">GPL-3.0</text>
+    <rect x="156" y="0" width="236" height="34" rx="17" fill="#17120d" stroke="#f5d2aa" stroke-opacity="0.18"/>
+    <text x="181" y="23" fill="#d9c6ad" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="2">07:00 BJT ? DAILY BRIEF</text>
+
+    <text x="0" y="118" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-weight="700" letter-spacing="-4">AI + Finance</text>
+    <text x="0" y="203" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-weight="700" letter-spacing="-4">becomes a</text>
+    <text x="0" y="288" fill="#f08a45" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-style="italic" font-weight="700" letter-spacing="-4">ship-ready brief,</text>
+    <text x="0" y="373" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-weight="700" letter-spacing="-4">in your inbox.</text>
+
+    <text x="0" y="432" fill="#c3b29a" font-family="Inter, Arial, sans-serif" font-size="22">RSS is the firehose. MorningModel filters, extracts, ranks, summarizes,</text>
+    <text x="0" y="464" fill="#c3b29a" font-family="Inter, Arial, sans-serif" font-size="22">and sends a Chinese AI + Finance daily email through iCloud SMTP.</text>
+
+    <g transform="translate(0 548)">
+      <g>
+        <text y="0" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700">41</text>
+        <text y="42" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">CURATED</text>
+        <text y="62" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">RSS FEEDS</text>
+      </g>
+      <g transform="translate(150 0)">
+        <text y="0" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700">03</text>
+        <text y="42" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">TOP 10</text>
+        <text y="62" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">COLUMNS</text>
+      </g>
+      <g transform="translate(300 0)">
+        <text y="0" fill="#f7efe3" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="700">03</text>
+        <text y="42" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">LLM</text>
+        <text y="62" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">PROVIDERS</text>
+      </g>
+      <g transform="translate(450 0)">
+        <text y="0" fill="#f08a45" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-style="italic" font-weight="700">0</text>
+        <text y="42" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">REPEATED</text>
+        <text y="62" fill="#9f8e76" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" letter-spacing="3">OLD STORY</text>
+      </g>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <g transform="translate(820 182) rotate(-5)">
+      <rect width="455" height="250" rx="18" fill="url(#card)"/>
+      <rect width="455" height="34" rx="18" fill="#1b1713"/>
+      <circle cx="22" cy="17" r="5" fill="#ff7043"/>
+      <circle cx="42" cy="17" r="5" fill="#d7c4a9"/>
+      <circle cx="62" cy="17" r="5" fill="#5e5548"/>
+      <text x="24" y="70" fill="#17120d" font-family="Arial, sans-serif" font-size="21" font-weight="800">AI + Finance Daily Brief</text>
+      <text x="24" y="101" fill="#17120d" font-family="Arial, sans-serif" font-size="14" font-weight="700">AI Top 10</text>
+      <text x="24" y="132" fill="#2f281f" font-family="Arial, sans-serif" font-size="12">1. OpenAI product strategy shifts...</text>
+      <text x="24" y="158" fill="#2f281f" font-family="Arial, sans-serif" font-size="12">2. Cerebras IPO signals inference demand...</text>
+      <text x="24" y="184" fill="#2f281f" font-family="Arial, sans-serif" font-size="12">3. Claude Code quality trace...</text>
+      <rect x="278" y="82" width="130" height="78" rx="12" fill="#efe4d2"/>
+      <text x="302" y="124" fill="#111" font-family="Georgia, serif" font-size="36" font-weight="700">07:00</text>
+      <text x="302" y="148" fill="#9a6a3d" font-family="ui-monospace, monospace" font-size="12">BEIJING TIME</text>
+    </g>
+
+    <g transform="translate(1045 82) rotate(7)">
+      <rect width="360" height="194" rx="16" fill="#fbf4e8"/>
+      <rect width="360" height="28" rx="16" fill="#191410"/>
+      <text x="24" y="66" fill="#1a1510" font-family="Georgia, serif" font-size="28" font-weight="700">Three columns,</text>
+      <text x="24" y="100" fill="#1a1510" font-family="Georgia, serif" font-size="28" font-weight="700">one morning signal.</text>
+      <text x="24" y="142" fill="#8c6a4a" font-family="ui-monospace, monospace" font-size="13">AI ? RESEARCH ? FINANCE</text>
+    </g>
+
+    <g transform="translate(789 359) rotate(2)">
+      <rect width="440" height="242" rx="20" fill="url(#blue)"/>
+      <rect x="24" y="24" width="392" height="38" rx="10" fill="#0a102a" opacity="0.38"/>
+      <text x="34" y="49" fill="#d8e4ff" font-family="ui-monospace, monospace" font-size="13" letter-spacing="2">LITELLM ? OPENAI / DEEPSEEK / GEMINI</text>
+      <text x="36" y="112" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900" letter-spacing="-2">Rank the news,</text>
+      <text x="36" y="162" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900" letter-spacing="-2">not the noise.</text>
+      <rect x="36" y="188" width="96" height="18" rx="9" fill="#f08a45"/>
+      <rect x="148" y="188" width="132" height="18" rx="9" fill="#ffffff" opacity="0.9"/>
+      <rect x="296" y="188" width="80" height="18" rx="9" fill="#ffffff" opacity="0.45"/>
+    </g>
+
+    <g transform="translate(1150 522) rotate(-3)">
+      <rect width="340" height="188" rx="18" fill="#050505"/>
+      <rect x="0" y="0" width="340" height="34" rx="18" fill="#f7efe3"/>
+      <text x="28" y="90" fill="#f7efe3" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800">RSS -> SUMMARY</text>
+      <text x="28" y="126" fill="#f08a45" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800">+ WHY IT MATTERS</text>
+      <text x="28" y="160" fill="#9f8e76" font-family="ui-monospace, monospace" font-size="14">prompt guardrails + history</text>
+    </g>
+  </g>
+
+  <circle cx="1395" cy="150" r="45" fill="#f08a45"/>
+  <text x="1368" y="145" fill="#2b1609" font-family="ui-monospace, monospace" font-size="12" font-weight="800">OPEN</text>
+  <text x="1365" y="163" fill="#2b1609" font-family="ui-monospace, monospace" font-size="12" font-weight="800">SOURCE</text>
+
+  <g transform="translate(680 662)">
+    <text x="0" y="0" fill="#f08a45" font-family="Georgia, serif" font-size="46" font-weight="700">"</text>
+    <text x="44" y="10" fill="#f7efe3" font-family="Georgia, serif" font-size="23" font-style="italic">RSS is good for machines.</text>
+    <text x="44" y="42" fill="#f7efe3" font-family="Georgia, serif" font-size="23" font-style="italic">The morning brief is good for humans.</text>
+  </g>
+</svg>

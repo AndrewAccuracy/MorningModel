@@ -63,9 +63,7 @@ async def test_select_articles_for_fetching_with_llm(sample_articles):
         )
 
     assert len(selected) == 3
-    assert selected[0].id == "test-1"
-    assert selected[1].id == "test-3"
-    assert selected[2].id == "test-5"
+    assert [article.id for article in selected] == ["test-10", "test-8", "test-6"]
 
 
 @pytest.mark.asyncio
@@ -142,6 +140,76 @@ async def test_select_all_articles_when_below_threshold(sample_articles):
 
     # Should return all without calling LLM
     assert len(selected) == 10
+
+
+@pytest.mark.asyncio
+async def test_select_articles_for_fetching_deduplicates_and_prefers_higher_reach():
+    settings = LLMSettings(
+        reasoner_model="openai/gpt-4o",
+        n_most_important_news=3,
+        api_key="test-key",
+    )
+    global_config = GlobalConfig()
+    summarizer = LLMSummarizer(settings, global_config)
+
+    articles = [
+        Article(
+            id="cnbc-1",
+            title="Cerebras raises $5.5B in blockbuster IPO",
+            link="https://www.cnbc.com/2025/01/01/cerebras-ipo.html",
+            published_date=datetime(2025, 1, 1, 12, tzinfo=timezone.utc),
+            summary="Major AI chip IPO with broad market implications.",
+            feed_name="CNBC Finance",
+        ),
+        Article(
+            id="medium-1",
+            title="Cerebras raises $5.5B in blockbuster IPO",
+            link="https://medium.com/@writer/cerebras-ipo-recap",
+            published_date=datetime(2025, 1, 1, 13, tzinfo=timezone.utc),
+            summary="My thoughts on the same IPO story.",
+            feed_name="Medium Finance",
+        ),
+    ]
+
+    selected = await summarizer.select_articles_for_fetching(articles)
+
+    assert len(selected) == 1
+    assert selected[0].id == "cnbc-1"
+
+
+@pytest.mark.asyncio
+async def test_select_articles_for_fetching_filters_low_trust_low_signal_candidates():
+    settings = LLMSettings(
+        reasoner_model="openai/gpt-4o",
+        n_most_important_news=3,
+        api_key="test-key",
+    )
+    global_config = GlobalConfig()
+    summarizer = LLMSummarizer(settings, global_config)
+
+    articles = [
+        Article(
+            id="spam-1",
+            title="How to get a loan at low interest rates",
+            link="https://medium.com/@writer/how-to-get-a-loan",
+            published_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            summary="A beginner guide to personal finance decisions.",
+            feed_name="Medium Finance",
+        ),
+        Article(
+            id="fed-1",
+            title="Federal Reserve releases household wellbeing report",
+            link="https://www.federalreserve.gov/newsevents/pressreleases/test.htm",
+            published_date=datetime(2025, 1, 1, 1, tzinfo=timezone.utc),
+            summary="Official data on consumer finances and labor market stress.",
+            feed_name="Federal Reserve Press Releases",
+        ),
+    ]
+
+    selected = await summarizer.select_articles_for_fetching(articles)
+
+    assert len(selected) == 1
+    assert selected[0].id == "fed-1"
 
 
 @pytest.mark.asyncio

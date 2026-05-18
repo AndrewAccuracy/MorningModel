@@ -278,6 +278,84 @@ name = "Test Feed"
 
 
 @pytest.mark.asyncio
+async def test_history_prevents_same_story_replay_by_title(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    collection_name = "Test"
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    history_file = history_dir / f"{collection_name}_articles.json"
+
+    history_data = [
+        {
+            "id": "https://old-source.com/story",
+            "title": "Cerebras raises $5.5B in blockbuster IPO",
+            "link": "https://old-source.com/story",
+            "published_date": "2025-01-01T00:00:00+00:00",
+            "summary": "Old summary",
+        }
+    ]
+    history_file.write_text(json.dumps(history_data), encoding="utf-8")
+
+    collection_path = tmp_path / "test.toml"
+    _write_toml(
+        collection_path,
+        """
+name = "Test"
+
+[[feeds]]
+url = "https://example.com/rss"
+name = "Test Feed"
+""",
+    )
+
+    global_config = GlobalConfig()
+    collection_config = load_collection(str(collection_path), global_config)
+
+    mock_feed = MagicMock()
+    mock_feed.status = 200
+    mock_feed.bozo = False
+    mock_feed.entries = []
+
+    entries = [
+        (
+            "Cerebras raises $5.5B in blockbuster IPO",
+            "https://new-source.com/story",
+            (2025, 1, 2, 0, 0, 0, 0, 0, 0),
+        ),
+        (
+            "OpenAI launches new agent tooling",
+            "https://example.com/new",
+            (2025, 1, 2, 1, 0, 0, 0, 0, 0),
+        ),
+    ]
+
+    for i, (title, link, date_tuple) in enumerate(entries):
+        entry = MagicMock()
+        entry.title = title
+        entry.link = link
+        entry.published_parsed = date_tuple
+        entry.summary = f"Summary {i + 1}"
+        entry.content = []
+        entry.get = MagicMock(
+            side_effect=lambda k, d=None, pp=date_tuple: {
+                "published_parsed": pp,
+                "published": None,
+            }.get(k, d)
+        )
+        mock_feed.entries.append(entry)
+
+    from better_morning.rss_fetcher import RSSFetcher
+
+    with patch("better_morning.rss_fetcher.feedparser.parse", return_value=mock_feed):
+        fetcher = RSSFetcher(collection_config.feeds)
+        articles = fetcher.fetch_articles(collection_config.name)
+
+    assert len(articles) == 1
+    assert articles[0].title == "OpenAI launches new agent tooling"
+
+
+@pytest.mark.asyncio
 async def test_max_age_filtering(tmp_path, monkeypatch):
     """Test that max_age filters out old articles"""
     monkeypatch.chdir(tmp_path)
