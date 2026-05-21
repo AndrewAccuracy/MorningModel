@@ -1,626 +1,435 @@
 <!doctype html>
 <!--
-  MorningModel banner design.
-  Techniques applied:
-  - 6-layer depth system
-  - dark cinematic grid background
-  - RSS signal streams into a morning email card
-  - GPU-safe transform/opacity animations
-  - reduced-motion fallback
+  MorningModel — README banner
+  Design: dark editorial, RSS-to-inbox visual metaphor
+  Optimised for screenshot at 1400 × 560 px
 -->
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MorningModel Banner</title>
-    <style>
-      :root {
-        --bg: #100c08;
-        --ink: #f8efe2;
-        --muted: #b9a891;
-        --soft: #e6d6c1;
-        --orange: #f08a45;
-        --orange-deep: #6f3316;
-        --blue: #1547ff;
-        --card: #f7efe3;
-        --shadow: 0 34px 70px rgba(0, 0, 0, 0.48);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        min-height: 100%;
-        margin: 0;
-      }
-
-      body {
-        display: grid;
-        place-items: center;
-        overflow-x: hidden;
-        background:
-          radial-gradient(circle at 78% 18%, rgba(240, 138, 69, 0.2), transparent 34%),
-          linear-gradient(135deg, #17100a 0%, #21140d 52%, #050505 100%);
-        color: var(--ink);
-        font-family:
-          Inter,
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-      }
-
-      .scene {
-        position: relative;
-        width: min(96vw, 1600px);
-        aspect-ratio: 16 / 8.4;
-        min-height: 520px;
-        overflow: hidden;
-        border-radius: 28px;
-        background: var(--bg);
-        box-shadow: 0 50px 110px rgba(0, 0, 0, 0.55);
-        isolation: isolate;
-      }
-
-      .layer {
-        position: absolute;
-        inset: 0;
-      }
-
-      .depth-0 {
-        background:
-          linear-gradient(rgba(247, 221, 189, 0.055) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(247, 221, 189, 0.055) 1px, transparent 1px);
-        background-size: 64px 64px;
-        transform: scale(1.02);
-      }
-
-      .depth-1 {
-        background:
-          radial-gradient(circle at 82% 16%, rgba(240, 138, 69, 0.34), transparent 22%),
-          radial-gradient(circle at 58% 60%, rgba(21, 71, 255, 0.14), transparent 18%);
-        filter: blur(2px);
-        opacity: 0.9;
-      }
-
-      .top-rule,
-      .bottom-rule {
-        position: absolute;
-        left: 7.5%;
-        right: 7.5%;
-        height: 1px;
-        background: rgba(247, 221, 189, 0.12);
-      }
-
-      .top-rule {
-        top: 12.8%;
-      }
-
-      .bottom-rule {
-        bottom: 13.4%;
-      }
-
-      .eyebrow {
-        position: absolute;
-        top: 8.2%;
-        color: rgba(217, 198, 173, 0.72);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(9px, 0.85vw, 14px);
-        letter-spacing: 0.28em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-
-      .eyebrow.left {
-        left: 7.5%;
-      }
-
-      .eyebrow.right {
-        right: 7.5%;
-      }
-
-      .copy {
-        position: absolute;
-        left: 7.5%;
-        top: 18.5%;
-        z-index: 4;
-        width: 43%;
-      }
-
-      .pills {
-        display: flex;
-        gap: 12px;
-        margin-bottom: clamp(28px, 4vw, 54px);
-      }
-
-      .pill {
-        border: 1px solid rgba(245, 210, 170, 0.18);
-        border-radius: 999px;
-        padding: 9px 17px;
-        background: rgba(23, 18, 13, 0.74);
-        color: var(--soft);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(9px, 0.85vw, 13px);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .pill.hot {
-        border-color: rgba(240, 138, 69, 0.48);
-        color: var(--orange);
-      }
-
-      h1 {
-        margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(48px, 5vw, 92px);
-        line-height: 0.95;
-        letter-spacing: -0.065em;
-      }
-
-      .italic {
-        color: var(--orange);
-        font-style: italic;
-      }
-
-      .dek {
-        width: min(100%, 720px);
-        margin: clamp(22px, 2.8vw, 42px) 0 0;
-        color: var(--muted);
-        font-size: clamp(14px, 1.2vw, 21px);
-        line-height: 1.55;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: clamp(18px, 2.4vw, 42px);
-        width: min(92%, 650px);
-        margin-top: clamp(34px, 5vw, 82px);
-      }
-
-      .stat strong {
-        display: block;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(34px, 3.4vw, 58px);
-        line-height: 1;
-      }
-
-      .stat:nth-child(4) strong {
-        color: var(--orange);
-        font-style: italic;
-      }
-
-      .stat span {
-        display: block;
-        margin-top: 10px;
-        color: #9f8e76;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(8px, 0.8vw, 12px);
-        letter-spacing: 0.22em;
-        line-height: 1.55;
-        text-transform: uppercase;
-      }
-
-      .cards {
-        position: absolute;
-        inset: 0;
-        z-index: 3;
-        pointer-events: none;
-      }
-
-      .card {
-        position: absolute;
-        overflow: hidden;
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        will-change: transform;
-      }
-
-      .window-bar {
-        display: flex;
-        align-items: center;
-        height: 34px;
-        padding: 0 16px;
-        gap: 9px;
-        background: #18130f;
-      }
-
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-      }
-
-      .dot:nth-child(1) {
-        background: #ff7043;
-      }
-
-      .dot:nth-child(2) {
-        background: #d7c4a9;
-      }
-
-      .dot:nth-child(3) {
-        background: #5e5548;
-      }
-
-      .email {
-        top: 22%;
-        left: 50.5%;
-        width: 30%;
-        min-width: 360px;
-        background: var(--card);
-        color: #17120d;
-        transform: rotate(-5deg);
-        animation: float-a 9s ease-in-out infinite;
-      }
-
-      .email .content {
-        padding: 28px 34px 32px;
-      }
-
-      .email h2 {
-        margin: 0 0 18px;
-        font-size: clamp(21px, 2vw, 33px);
-        letter-spacing: -0.04em;
-      }
-
-      .email ol {
-        margin: 0;
-        padding-left: 18px;
-        color: #2f281f;
-        font-size: clamp(11px, 0.9vw, 14px);
-        line-height: 1.8;
-      }
-
-      .email mark {
-        border-radius: 999px;
-        padding: 2px 8px;
-        background: #ead6bd;
-        color: #653518;
-      }
-
-      .columns {
-        top: 10%;
-        right: 8%;
-        width: 24%;
-        min-width: 300px;
-        padding: 34px;
-        background: #fbf4e8;
-        color: #16120f;
-        transform: rotate(7deg);
-        animation: float-b 11s ease-in-out infinite;
-      }
-
-      .columns h3 {
-        margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(24px, 2.4vw, 42px);
-        line-height: 1.03;
-        letter-spacing: -0.05em;
-      }
-
-      .columns p {
-        margin: 20px 0 0;
-        color: #8c6a4a;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(10px, 0.85vw, 13px);
-        letter-spacing: 0.12em;
-      }
-
-      .engine {
-        top: 43%;
-        left: 48.5%;
-        width: 29%;
-        min-width: 390px;
-        padding: 34px 38px;
-        background: linear-gradient(135deg, var(--blue), #081653);
-        color: #fff;
-        transform: rotate(2deg);
-        animation: float-c 10s ease-in-out infinite;
-      }
-
-      .engine small {
-        display: inline-block;
-        margin-bottom: 24px;
-        border-radius: 999px;
-        padding: 10px 14px;
-        background: rgba(4, 11, 42, 0.42);
-        color: #d8e4ff;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(9px, 0.8vw, 12px);
-        letter-spacing: 0.12em;
-      }
-
-      .engine h3 {
-        margin: 0;
-        font-size: clamp(32px, 3.1vw, 52px);
-        line-height: 0.98;
-        letter-spacing: -0.06em;
-      }
-
-      .bars {
-        display: flex;
-        gap: 14px;
-        margin-top: 30px;
-      }
-
-      .bars i {
-        display: block;
-        height: 18px;
-        border-radius: 999px;
-        background: #fff;
-        opacity: 0.88;
-      }
-
-      .bars i:nth-child(1) {
-        width: 92px;
-        background: var(--orange);
-        opacity: 1;
-      }
-
-      .bars i:nth-child(2) {
-        width: 132px;
-      }
-
-      .bars i:nth-child(3) {
-        width: 80px;
-        opacity: 0.42;
-      }
-
-      .black-card {
-        right: 7%;
-        bottom: 13%;
-        width: 22%;
-        min-width: 310px;
-        padding: 54px 34px 34px;
-        background: #050505;
-        color: var(--ink);
-        transform: rotate(-3deg);
-        animation: float-a 12s ease-in-out infinite reverse;
-      }
-
-      .black-card::before {
-        content: "";
-        position: absolute;
-        inset: 0 0 auto;
-        height: 34px;
-        background: var(--ink);
-      }
-
-      .black-card h3 {
-        margin: 0;
-        font-size: clamp(24px, 2.1vw, 36px);
-        line-height: 1.15;
-        letter-spacing: -0.05em;
-      }
-
-      .black-card b {
-        color: var(--orange);
-      }
-
-      .black-card p {
-        margin: 20px 0 0;
-        color: #9f8e76;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(10px, 0.8vw, 13px);
-      }
-
-      .badge {
-        position: absolute;
-        top: 14%;
-        right: 9.5%;
-        z-index: 5;
-        display: grid;
-        place-items: center;
-        width: clamp(58px, 5.8vw, 88px);
-        aspect-ratio: 1;
-        border-radius: 50%;
-        background: radial-gradient(circle at 35% 28%, #ffb078, var(--orange));
-        color: #2b1609;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: clamp(9px, 0.8vw, 12px);
-        font-weight: 900;
-        line-height: 1.25;
-        text-align: center;
-        text-transform: uppercase;
-        box-shadow: 0 18px 46px rgba(240, 138, 69, 0.32);
-        animation: pulse 6s ease-in-out infinite;
-      }
-
-      .quote {
-        position: absolute;
-        left: 43%;
-        bottom: 16%;
-        z-index: 4;
-        color: var(--ink);
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(18px, 1.5vw, 25px);
-        font-style: italic;
-        line-height: 1.35;
-      }
-
-      .quote::before {
-        content: "“";
-        position: absolute;
-        left: -54px;
-        top: -26px;
-        color: var(--orange);
-        font-size: 72px;
-        font-style: normal;
-      }
-
-      .noise {
-        opacity: 0.08;
-        background-image:
-          radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1px),
-          radial-gradient(circle at 70% 80%, #fff 0 1px, transparent 1px);
-        background-size: 28px 28px, 47px 47px;
-        mix-blend-mode: screen;
-      }
-
-      @keyframes float-a {
-        0%,
-        100% {
-          translate: 0 0;
-        }
-        50% {
-          translate: 0 -18px;
-        }
-      }
-
-      @keyframes float-b {
-        0%,
-        100% {
-          translate: 0 0;
-        }
-        50% {
-          translate: -10px 16px;
-        }
-      }
-
-      @keyframes float-c {
-        0%,
-        100% {
-          translate: 0 0;
-        }
-        50% {
-          translate: 12px -12px;
-        }
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.06);
-        }
-      }
-
-      @media (max-width: 900px) {
-        .scene {
-          width: 100vw;
-          min-height: 780px;
-          border-radius: 0;
-          aspect-ratio: auto;
-        }
-
-        .copy {
-          left: 7%;
-          top: 12%;
-          width: 86%;
-        }
-
-        .stats {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          width: 72%;
-        }
-
-        .cards {
-          opacity: 0.55;
-          transform: scale(0.72);
-          transform-origin: 78% 58%;
-        }
-
-        .eyebrow.right {
-          display: none;
-        }
-
-        .quote {
-          display: none;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          scroll-behavior: auto !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="scene" data-scene="hero" aria-label="MorningModel GitHub banner">
-      <div class="layer depth-0" data-depth="0" aria-hidden="true"></div>
-      <div class="layer depth-1" data-depth="1" aria-hidden="true"></div>
-      <div class="layer depth-2" data-depth="2" aria-hidden="true">
-        <div class="top-rule"></div>
-        <div class="bottom-rule"></div>
-        <div class="eyebrow left">MorningModel · AI + Finance Daily Brief</div>
-        <div class="eyebrow right">41 RSS feeds · 3 Top 10 lists · 07:00 BJT</div>
-      </div>
-
-      <section class="copy depth-4" data-depth="4">
-        <div class="pills" aria-label="Project badges">
-          <span class="pill hot">GPL-3.0</span>
-          <span class="pill">Local-first digest</span>
-        </div>
-        <h1>
-          Wake up to<br />
-          <span class="italic">one morning</span><br />
-          signal.
-        </h1>
-        <p class="dek">
-          AI industry, research safety, and global finance news filtered
-          into a Chinese email brief before the day starts.
-        </p>
-        <div class="stats" aria-label="MorningModel stats">
-          <div class="stat"><strong>41</strong><span>Curated<br />RSS feeds</span></div>
-          <div class="stat"><strong>03</strong><span>Top 10<br />columns</span></div>
-          <div class="stat"><strong>03</strong><span>LLM<br />providers</span></div>
-          <div class="stat"><strong>0</strong><span>Repeated<br />old story</span></div>
-        </div>
-      </section>
-
-      <div class="cards depth-3" data-depth="3">
-        <article class="card email" aria-label="Sample email digest window">
-          <div class="window-bar" aria-hidden="true">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          </div>
-          <div class="content">
-            <h2>AI + Finance Daily Brief</h2>
-            <ol>
-              <li><b>OpenAI product strategy shifts</b> <mark>Source</mark></li>
-              <li><b>Cerebras IPO signals inference demand</b> <mark>Source</mark></li>
-              <li><b>Claude Code quality trace</b> <mark>Source</mark></li>
-              <li><b>Fed path reprices risk assets</b> <mark>Source</mark></li>
-            </ol>
-          </div>
-        </article>
-
-        <article class="card columns" aria-label="Three digest columns">
-          <h3>Three columns,<br />one signal.</h3>
-          <p>AI · RESEARCH · FINANCE</p>
-        </article>
-
-        <article class="card engine" aria-label="LLM ranking engine">
-          <small>LiteLLM · OpenAI / DeepSeek / Gemini</small>
-          <h3>Noise out.<br />Signal in.</h3>
-          <div class="bars" aria-hidden="true"><i></i><i></i><i></i></div>
-        </article>
-
-        <article class="card black-card" aria-label="Digest constraints">
-          <h3>history-aware<br /><b>deduplication</b></h3>
-          <p>last-digest memory</p>
-        </article>
-      </div>
-
-      <div class="badge depth-5" data-depth="5" aria-hidden="true">Open<br />Source</div>
-      <p class="quote depth-4" data-depth="4">
-        RSS is good for machines.<br />
-        The morning brief is good for humans.
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MorningModel Banner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg0:     #0d0a07;
+      --bg1:     #17110b;
+      --ink:     #f5ead8;
+      --muted:   #9e8c76;
+      --soft:    #d4c4ad;
+      --accent:  #e8813a;
+      --accent2: #4a9eff;
+      --green:   #3ecf8e;
+      --card:    #1e160e;
+      --border:  rgba(232,129,58,.25);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 560px;
+      background:
+        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(232,129,58,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(74,158,255,.10) 0%, transparent 60%),
+        linear-gradient(150deg, #1a0f06 0%, #0d0a07 55%, #060810 100%);
+      padding: 36px 40px;
+    }
+
+    /* ── grid background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      max-width: 1320px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 48px;
+      align-items: center;
+    }
+
+    /* ────── LEFT: copy ────── */
+    .copy { display: flex; flex-direction: column; gap: 20px; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .eyebrow .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .headline {
+      font-size: clamp(36px, 4vw, 56px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -.02em;
+      color: var(--ink);
+    }
+    .headline em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--accent) 0%, #f5b942 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sub {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--soft);
+      max-width: 520px;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid;
+    }
+    .pill-ai    { border-color: rgba(232,129,58,.4); color: #f5b075; background: rgba(232,129,58,.08); }
+    .pill-fin   { border-color: rgba(74,158,255,.4); color: #7bb8ff; background: rgba(74,158,255,.08); }
+    .pill-safe  { border-color: rgba(62,207,142,.4); color: #6edeb0; background: rgba(62,207,142,.08); }
+    .pill-llm   { border-color: rgba(180,130,255,.4); color: #c9a3ff; background: rgba(180,130,255,.08); }
+
+    .stats {
+      display: flex;
+      gap: 28px;
+      margin-top: 8px;
+    }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat-num  { font-size: 26px; font-weight: 800; color: var(--ink); }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+
+    /* ────── RIGHT: email card ────── */
+    .card-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* shadow cards behind */
+    .card-wrap::before,
+    .card-wrap::after {
+      content: '';
+      position: absolute;
+      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .card-wrap::before {
+      inset: 12px -10px -10px 10px;
+      opacity: .5;
+    }
+    .card-wrap::after {
+      inset: 6px -5px -5px 5px;
+      opacity: .7;
+    }
+
+    .card {
+      position: relative;
+      width: 340px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 32px 64px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .card-head {
+      background: #fff;
+      padding: 16px 20px 12px;
+      border-bottom: 3px double #1a1a1a;
+      text-align: center;
+    }
+    .card-head-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #1a1a1a;
+    }
+    .card-head-rule {
+      display: block;
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      margin: 5px auto;
+      width: 55%;
+    }
+    .card-head-date {
+      font-size: 9px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .card-lede {
+      padding: 10px 14px;
+      background: #faf8f4;
+      border-bottom: 1px solid #eee;
+    }
+    .card-lede-label {
+      font-size: 8px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+    .card-lede-text {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 10px;
+      line-height: 1.55;
+      font-style: italic;
+      color: #222;
+    }
+
+    .card-section {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eee;
+    }
+    .card-section-title {
+      font-size: 8px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #888;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      border-bottom: 1.5px solid #1a1a1a;
+    }
+    .card-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 7px;
+      align-items: flex-start;
+    }
+    .card-num {
+      font-size: 9px;
+      font-weight: 700;
+      color: #aaa;
+      min-width: 12px;
+      padding-top: 1px;
+    }
+    .card-item-text {
+      font-size: 9px;
+      line-height: 1.5;
+      color: #333;
+    }
+    .card-item-text strong { color: #1a1a1a; display: block; margin-bottom: 2px; }
+    .card-item-src {
+      font-size: 8px;
+      color: #999;
+    }
+
+    .card-footer {
+      padding: 8px 14px;
+      text-align: center;
+      font-size: 8px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: #ccc;
+      background: #faf8f4;
+      border-top: 1px solid #eee;
+    }
+
+    /* ────── flow arrows ────── */
+    .flow {
+      position: absolute;
+      left: -80px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .flow-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: .5;
+    }
+    .flow-line {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border));
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.8); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dot { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+
+    <!-- LEFT -->
+    <div class="copy">
+      <span class="eyebrow">
+        <span class="dot"></span>
+        Delivered daily · 07:00 Beijing time
+      </span>
+
+      <h1 class="headline">
+        41 RSS feeds.<br>
+        One <em>morning email.</em>
+      </h1>
+
+      <p class="sub">
+        MorningModel pulls high-signal AI&nbsp;&amp;&nbsp;Finance sources, filters noise with LLM&nbsp;scoring, deduplicates across history, and ships a ranked Chinese digest — every morning, automatically.
       </p>
-      <div class="layer noise depth-5" data-depth="5" aria-hidden="true"></div>
-    </main>
-  </body>
+
+      <div class="pills">
+        <span class="pill pill-ai">🤖 AI Top 10</span>
+        <span class="pill pill-safe">🔬 Research &amp; Safety</span>
+        <span class="pill pill-fin">📈 Finance Top 10</span>
+        <span class="pill pill-llm">⚡ OpenAI · DeepSeek · Gemini</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-num">41</span>
+          <span class="stat-label">RSS feeds</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">3</span>
+          <span class="stat-label">Collections</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">~25<small style="font-size:.6em">min</small></span>
+          <span class="stat-label">Run time</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">8</span>
+          <span class="stat-label">Email providers</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: newspaper email card -->
+    <div class="card-wrap">
+      <!-- RSS source indicators -->
+      <div class="flow">
+        <div class="flow-item"><span>OpenAI Blog</span><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-item"><span>arXiv AI</span><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-item"><span>FT Markets</span><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-item"><span>+38 more</span><div class="flow-dot"></div><div class="flow-line"></div></div>
+      </div>
+
+      <div class="card">
+        <!-- masthead -->
+        <div class="card-head">
+          <div class="card-head-title">AI + Finance 国际晨报</div>
+          <hr class="card-head-rule">
+          <div class="card-head-date">Wednesday, May 20, 2026</div>
+        </div>
+
+        <!-- one-line take -->
+        <div class="card-lede">
+          <div class="card-lede-label">今日主线</div>
+          <div class="card-lede-text">Google I/O 宣布搜索范式转变，全球债市抛售潮与中东能源冲击构成宏观对冲压力。</div>
+        </div>
+
+        <!-- AI section -->
+        <div class="card-section">
+          <div class="card-section-title">AI Top 10</div>
+          <div class="card-item">
+            <span class="card-num">1</span>
+            <div class="card-item-text">
+              <strong>Google Search as you know it is over</strong>
+              25年来最根本变革，AI驱动搜索框，引入24/7信息代理。
+              <span class="card-item-src">TechCrunch AI</span>
+            </div>
+          </div>
+          <div class="card-item">
+            <span class="card-num">2</span>
+            <div class="card-item-text">
+              <strong>Gemini 3.5 Flash: agents, not chatbots</strong>
+              Google押注自主代理，速度领先前沿模型4倍。
+              <span class="card-item-src">TechCrunch AI</span>
+            </div>
+          </div>
+          <div class="card-item">
+            <span class="card-num">3</span>
+            <div class="card-item-text">
+              <strong>Cerebras $60B IPO: slowly, then all at once</strong>
+              AI硬件领域重大融资，获OpenAI万亿参数推理订单。
+              <span class="card-item-src">Latent Space</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Finance section -->
+        <div class="card-section">
+          <div class="card-section-title">Finance Top 10</div>
+          <div class="card-item">
+            <span class="card-num">1</span>
+            <div class="card-item-text">
+              <strong>Putin-Xi revive Russia gas pipeline</strong>
+              伊朗战争扰乱中国石油进口，重启西伯利亚管道谈判。
+              <span class="card-item-src">CNBC</span>
+            </div>
+          </div>
+          <div class="card-item">
+            <span class="card-num">2</span>
+            <div class="card-item-text">
+              <strong>SpaceX picks Goldman for record IPO</strong>
+              1.25万亿美元估值，最快本周公开招股书。
+              <span class="card-item-src">CNBC</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer">Better Morning · 每日 07:00 北京时间送达</div>
+      </div>
+    </div>
+
+  </div>
+</body>
 </html>

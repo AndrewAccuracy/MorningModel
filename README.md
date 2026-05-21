@@ -2,11 +2,17 @@
 
 <p align="center"><sub>Adapted from <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> — configurable RSS collections, article extraction, LLM summarization, digest history, and scheduled delivery. MorningModel is the focused <b>AI + Finance international morning brief</b> edition.</sub></p>
 
+<!--
+  Banner — open docs/assets/morningmodel-banner.html in a browser
+  for the live interactive version, then screenshot at 1400×560.
+-->
 <p align="center">
-  <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — AI + Finance daily brief" width="100%" />
+  <a href="docs/assets/morningmodel-banner.html">
+    <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — 41 RSS feeds · One morning email" width="100%" />
+  </a>
 </p>
 
-> **RSS is the firehose. Your inbox is the finish line.** MorningModel is an AI-assisted daily email brief — it pulls high-signal RSS sources across AI industry, AI research & safety, and global finance, filters noisy items, summarizes with the LLM provider you already pay for, and ships a **Chinese morning email** through iCloud SMTP. **41 curated feeds** across **3 collections** · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · deduped with `last-digest` history · prompt-injection guardrails on every untrusted byte · local `./run.sh` or **GitHub Actions at 07:00 Beijing time**.
+> **RSS is the firehose. Your inbox is the finish line.** MorningModel pulls high-signal RSS sources across AI industry, AI research & safety, and global finance — filters with LLM scoring, deduplicates across run history, and ships a ranked **Chinese morning email** every day. **41 curated feeds** across **3 collections** · **8 email providers** (Gmail · Outlook · QQ · iCloud · and more) · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · `last-digest` deduplication · prompt-injection guardrails · local `./run.sh` or **GitHub Actions at 07:00 Beijing time**.
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square" /></a>
@@ -20,12 +26,12 @@
 <p align="center">
   <a href="https://github.com/AndrewAccuracy/MorningModel/actions"><img alt="GitHub Actions" src="https://img.shields.io/badge/CI-daily%20digest-5865f2?style=flat-square&logo=githubactions&logoColor=white" /></a>
   <a href="https://github.com/00sapo/better-morning"><img alt="Upstream" src="https://img.shields.io/badge/upstream-00sapo%2Fbetter--morning-8e44ad?style=flat-square" /></a>
-  <a href="#output"><img alt="Output" src="https://img.shields.io/badge/output-iCloud%20email%20%C2%B7%20.md-f39c12?style=flat-square" /></a>
+  <a href="#email-providers"><img alt="Email" src="https://img.shields.io/badge/email-8%20providers-f39c12?style=flat-square" /></a>
   <a href="#six-load-bearing-ideas"><img alt="Security" src="https://img.shields.io/badge/prompt--injection-guarded-1abc9c?style=flat-square" /></a>
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="docs/assets/morningmodel-banner.html">Open HTML banner design</a>
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="docs/assets/morningmodel-banner.html">🎨 Banner HTML source</a> · <a href="docs/assets/morningmodel-email-preview.html">📧 Email template preview</a>
 </p>
 
 ---
@@ -34,9 +40,55 @@
 
 Every successful run produces four sections — three ranked Top 10 lists plus a single-sentence editor's take. Each selected item ends with **入选优势**, a short note on why it earned a slot.
 
-<p align="center">
-  <img src="docs/assets/morningmodel-email-preview.png" alt="MorningModel email output preview" width="100%" />
-</p>
+The email uses a **newspaper layout** — serif typeface, masthead header, collapsed feed-report footnote. Open the live template:
+
+> 👉 **[morningmodel-email-preview.html](docs/assets/morningmodel-email-preview.html)** — rendered from a real run on 2026-05-20
+
+<details>
+<summary><b>📄 Email HTML structure (click to expand)</b></summary>
+
+```html
+<!-- Masthead -->
+<div class="masthead">
+  <h1>AI + Finance 国际晨报</h1>
+  <div class="dateline">Wednesday, May 20, 2026</div>
+</div>
+
+<!-- One-line Take (italic lede) -->
+<div class="lede">
+  <div class="lede-label">今日主线</div>
+  <div class="lede-text">
+    今天重点看 Google I/O 宣布搜索范式转变与全面 AI 代理化，
+    同时全球债市抛售潮与中东能源冲击构成宏观对冲压力。
+  </div>
+</div>
+
+<!-- One section per collection -->
+<div class="section">
+  <div class="section-title">AI Top 10</div>
+  <div class="section-content">
+    <!-- markdown2-rendered numbered list with Markdown links -->
+    <ol>
+      <li><strong>Google Search as you know it is over</strong>
+        (<a href="…">TechCrunch AI</a>)
+        Google在I/O大会上宣布…  入选优势：…
+      </li>
+      …
+    </ol>
+  </div>
+</div>
+
+<!-- Feed report — collapsed by default -->
+<details>
+  <summary>Feed 抓取报告</summary>
+  <table>…</table>
+</details>
+
+<!-- Footer -->
+<div class="footer">Better Morning · 每日 07:00 北京时间送达</div>
+```
+
+</details>
 
 | Section | What it covers |
 |---|---|
