@@ -2,13 +2,9 @@
 
 <p align="center"><sub>Adapted from <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> — configurable RSS collections, article extraction, LLM summarization, digest history, and scheduled delivery. MorningModel is the focused <b>AI + Finance international morning brief</b> edition.</sub></p>
 
-<!--
-  Banner — open docs/assets/morningmodel-banner.html in a browser
-  for the live interactive version, then screenshot at 1400×560.
--->
 <p align="center">
   <a href="docs/assets/morningmodel-banner.html">
-    <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — 41 RSS feeds · One morning email" width="100%" />
+    <img src="docs/assets/morningmodel-banner.svg" alt="MorningModel — 41 RSS feeds · One morning email" width="100%" />
   </a>
 </p>
 
