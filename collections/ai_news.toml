@@ -40,36 +40,43 @@ Exclude:
 url = "https://openai.com/news/rss.xml"
 name = "OpenAI News"
 max_articles = 10
+follow_article_links = false  # openai.com blocks all sub-link crawling (403)
 
 [[feeds]]
 url = "https://feed.infoq.com/anthropic/"
 name = "InfoQ Anthropic"
 max_articles = 10
+follow_article_links = false
 
 [[feeds]]
 url = "https://deepmind.google/blog/rss.xml"
 name = "Google DeepMind Blog"
 max_articles = 10
+follow_article_links = false
 
 [[feeds]]
 url = "https://huggingface.co/blog/feed.xml"
 name = "Hugging Face Blog"
 max_articles = 10
+follow_article_links = false
 
 [[feeds]]
 url = "https://techcrunch.com/category/artificial-intelligence/feed/"
 name = "TechCrunch AI"
 max_articles = 15
+follow_article_links = false
 
 [[feeds]]
 url = "https://venturebeat.com/category/ai/feed/"
 name = "VentureBeat AI"
 max_articles = 15
+follow_article_links = false
 
 [[feeds]]
 url = "https://www.theverge.com/rss/index.xml"
 name = "The Verge"
 max_articles = 15
+follow_article_links = false
 
 [[feeds]]
 url = "https://medium.com/feed/tag/artificial-intelligence"
