@@ -42,6 +42,10 @@ class ContentExtractionSettings(BaseModel):
 # --- Output Settings ---
 class OutputSettings(BaseModel):
     output_type: Literal["github_release", "email"] = "github_release"
+    # Set email_provider to auto-configure smtp_server and smtp_port.
+    # Supported values: gmail, outlook, icloud, qq, 163, 126, yahoo, zoho, custom
+    # Use "custom" (or leave unset) to specify smtp_server/smtp_port manually.
+    email_provider: Optional[str] = None
     smtp_server: Optional[str] = None
     smtp_port: Optional[int] = 587
     smtp_username_env: Optional[str] = "BETTER_MORNING_SMTP_USERNAME"
@@ -123,6 +127,100 @@ class Collection(BaseModel):
 
 # --- Main Configuration Loader ---
 GLOBAL_CONFIG_FILE = "config.toml"  # Assuming global config is at project root
+
+
+EMAIL_PROVIDER_PROFILES = {
+    # Western providers
+    "gmail": {
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "note": "Requires a Gmail App Password (2-Step Verification must be enabled). "
+                "Generate one at https://myaccount.google.com/apppasswords",
+    },
+    "outlook": {
+        "smtp_server": "smtp.office365.com",
+        "smtp_port": 587,
+        "note": "Works with Outlook, Hotmail, and Microsoft 365 accounts. "
+                "Use an App Password if MFA is enabled.",
+    },
+    "hotmail": {  # alias for outlook
+        "smtp_server": "smtp.office365.com",
+        "smtp_port": 587,
+        "note": "Alias for outlook. Use an App Password if MFA is enabled.",
+    },
+    "icloud": {
+        "smtp_server": "smtp.mail.me.com",
+        "smtp_port": 587,
+        "note": "Requires an Apple App-Specific Password. "
+                "Generate one at https://appleid.apple.com/account/manage",
+    },
+    "yahoo": {
+        "smtp_server": "smtp.mail.yahoo.com",
+        "smtp_port": 587,
+        "note": "Requires a Yahoo App Password. "
+                "Generate one at https://login.yahoo.com/account/security",
+    },
+    "zoho": {
+        "smtp_server": "smtp.zoho.com",
+        "smtp_port": 587,
+        "note": "Works with Zoho Mail free and paid accounts.",
+    },
+    # Chinese providers
+    "qq": {
+        "smtp_server": "smtp.qq.com",
+        "smtp_port": 465,
+        "note": "Requires a QQ Mail authorization code (授权码), NOT your QQ password. "
+                "Enable SMTP and generate a code at: QQ Mail → Settings → Account → POP3/SMTP.",
+    },
+    "163": {
+        "smtp_server": "smtp.163.com",
+        "smtp_port": 465,
+        "note": "Requires a 163 Mail authorization code (客户端授权密码). "
+                "Enable SMTP at: 163 Mail → Settings → POP3/SMTP/IMAP.",
+    },
+    "126": {
+        "smtp_server": "smtp.126.com",
+        "smtp_port": 465,
+        "note": "Requires a 126 Mail authorization code (客户端授权密码). "
+                "Enable SMTP at: 126 Mail → Settings → POP3/SMTP/IMAP.",
+    },
+    "sina": {
+        "smtp_server": "smtp.sina.com",
+        "smtp_port": 465,
+        "note": "Requires Sina Mail SMTP to be enabled and an authorization code.",
+    },
+}
+
+
+def apply_email_provider_overrides(config: GlobalConfig) -> GlobalConfig:
+    """Auto-configure smtp_server and smtp_port from email_provider if set.
+
+    Explicit smtp_server / smtp_port values in config.toml always win over the
+    provider profile so that advanced users can still override individual fields.
+    """
+    provider = (config.output_settings.email_provider or "").lower().strip()
+    if not provider or provider == "custom":
+        return config
+
+    profile = EMAIL_PROVIDER_PROFILES.get(provider)
+    if profile is None:
+        known = ", ".join(sorted(EMAIL_PROVIDER_PROFILES))
+        print(
+            f"Warning: Unknown email_provider '{provider}'. "
+            f"Known providers: {known}. "
+            "Falling back to manual smtp_server / smtp_port settings."
+        )
+        return config
+
+    # Only apply profile values when the field hasn't been set explicitly.
+    if config.output_settings.smtp_server is None:
+        config.output_settings.smtp_server = profile["smtp_server"]
+    if config.output_settings.smtp_port == 587 and profile["smtp_port"] != 587:
+        # 587 is the Pydantic default — treat it as "not explicitly set" so the
+        # profile port wins.  Users who really want 587 can set it explicitly.
+        config.output_settings.smtp_port = profile["smtp_port"]
+
+    return config
 
 
 LLM_PROVIDER_PROFILES = {
@@ -211,6 +309,7 @@ def load_global_config(path: str = GLOBAL_CONFIG_FILE) -> GlobalConfig:
             data = toml.load(path)
             config = GlobalConfig(**data)
         config = apply_llm_env_overrides(config)
+        config = apply_email_provider_overrides(config)
 
         # After loading, immediately try to resolve the API key
         try:

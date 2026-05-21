@@ -11,10 +11,14 @@ wheels/
 .python-version
 nvim_*.log
 
-# better morning 
+# better morning
 history
 daily-*
 debug
 run.log
 run.err.log
+run-preview.log
 .env.local
+
+# Claude Code internal directory (contains worktrees and local symlinks)
+.claude/

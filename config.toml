@@ -72,6 +72,7 @@ filter_model = "openai/gpt-4o"
 context_digest_size = 4
 
 [output_settings]
-output_type = "email"         # Options: "github_release", "email"
-smtp_server = "smtp.qq.com"      # QQ Mail SMTP server
-smtp_port = 465                  # QQ Mail uses SSL on port 465
+output_type = "email"      # Options: "github_release", "email"
+email_provider = "icloud"  # Supported: gmail, outlook, icloud, qq, 163, 126, yahoo, zoho, custom
+# smtp_server and smtp_port are set automatically by email_provider.
+# Override them here only if you use a custom/self-hosted SMTP server.
