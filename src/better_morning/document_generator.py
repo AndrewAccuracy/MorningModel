@@ -1,12 +1,9 @@
-import requests
 import smtplib
+import html as html_module
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, List, Optional
 from datetime import datetime
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import requests
 import markdown2
 import json
@@ -142,6 +139,136 @@ class DocumentGenerator:
             return "今天重点看全球宏观与市场风险偏好变化，继续跟踪央行预期、利率路径和主要资产定价。"
         return "今天重点看各栏目中最具国际影响力的新变化，并继续跟踪其后续扩散。"
 
+    def generate_email_html(
+        self,
+        collection_summaries: Dict[str, str],
+        date: datetime,
+        fetch_reports: Optional[Dict[str, dict]] = None,
+        collection_errors: Optional[Dict[str, str]] = None,
+        one_line_take: Optional[str] = None,
+    ) -> str:
+        """Generates a newspaper-style HTML email with only summaries; feed report is collapsed."""
+        _EMPTY_SUMMARIES = {
+            "No new articles found.",
+            "No articles selected for fetching.",
+            "No articles with extractable content.",
+            "No articles with valid summaries.",
+            "No content available for collection summary.",
+        }
+
+        date_str = date.strftime("%A, %B %-d, %Y")
+        one_line = html_module.escape(
+            one_line_take or self._generate_one_line_take(collection_summaries)
+        )
+
+        sections_html = ""
+        for collection_name, summary in collection_summaries.items():
+            if (
+                not summary
+                or summary in _EMPTY_SUMMARIES
+                or summary.startswith("[ERROR:")
+                or summary.startswith("[Error:")
+            ):
+                continue
+            section_title = html_module.escape(self._section_title(collection_name))
+            content_html = markdown2.markdown(
+                summary, extras=["fenced-code-blocks", "tables"]
+            )
+            sections_html += f"""
+    <div class="section">
+      <div class="section-title">{section_title}</div>
+      <div class="section-content">{content_html}</div>
+    </div>"""
+
+        # Build feed diagnostics table
+        diag_rows = ""
+        if fetch_reports:
+            for report in fetch_reports.values():
+                for feed in report.get("successful", []):
+                    name = html_module.escape(feed.get("name", ""))
+                    count = feed.get("articles_fetched", 0)
+                    diag_rows += f'<tr><td class="ok">✓</td><td>{name}</td><td>{count} 篇</td></tr>'
+                for feed in report.get("failed", []):
+                    name = html_module.escape(feed.get("name", ""))
+                    err = html_module.escape(str(feed.get("error", "")))[:80]
+                    diag_rows += f'<tr><td class="fail">✗</td><td>{name}</td><td class="fail">{err}</td></tr>'
+
+        diag_html = f"<table>{diag_rows}</table>" if diag_rows else "无抓取数据"
+
+        errors_html = ""
+        if collection_errors:
+            items = "".join(
+                f"<li><b>{html_module.escape(k)}</b>: {html_module.escape(v)}</li>"
+                for k, v in collection_errors.items()
+            )
+            errors_html = f"""
+    <details>
+      <summary>栏目处理错误</summary>
+      <div class="diag"><ul>{items}</ul></div>
+    </details>"""
+
+        return f"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI + Finance 国际晨报</title>
+<style>
+  body{{margin:0;padding:0;background:#f0ede8;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;}}
+  .wrap{{max-width:680px;margin:24px auto;background:#fff;border:1px solid #c8c4bc;box-shadow:0 2px 8px rgba(0,0,0,.08);}}
+  .masthead{{text-align:center;padding:28px 32px 18px;border-bottom:3px double #1a1a1a;}}
+  .masthead h1{{margin:0 0 8px;font-size:28px;letter-spacing:.1em;text-transform:uppercase;font-weight:bold;}}
+  .masthead .rule{{display:block;border:none;border-top:1px solid #1a1a1a;margin:6px auto;width:60%;}}
+  .masthead .dateline{{font:11px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#888;}}
+  .lede{{padding:18px 32px;border-bottom:1px solid #ddd;background:#faf8f4;}}
+  .lede-label{{font:10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#aaa;margin-bottom:8px;}}
+  .lede-text{{font-size:17px;line-height:1.6;font-style:italic;color:#222;}}
+  .section{{padding:22px 32px;border-bottom:1px solid #ddd;}}
+  .section-title{{font:10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#777;padding-bottom:8px;margin-bottom:18px;border-bottom:2px solid #1a1a1a;}}
+  .section-content{{font-size:14px;line-height:1.8;}}
+  .section-content a{{color:#1a1a1a;text-decoration:underline;}}
+  .section-content ol{{padding-left:22px;margin:0;}}
+  .section-content li{{margin-bottom:14px;}}
+  .section-content p{{margin:0 0 10px;}}
+  .section-content strong{{font-weight:bold;}}
+  .footer-area{{padding:0 32px;}}
+  details summary{{font:11px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#bbb;cursor:pointer;padding:14px 0;border-top:1px solid #eee;list-style:none;}}
+  details summary::-webkit-details-marker{{display:none;}}
+  details summary::before{{content:"▸ ";}}
+  details[open] summary::before{{content:"▾ ";}}
+  .diag{{font:12px/1.65 'Helvetica Neue',Arial,sans-serif;color:#888;padding:6px 0 16px;}}
+  .diag table{{width:100%;border-collapse:collapse;}}
+  .diag td{{padding:3px 12px 3px 0;vertical-align:top;}}
+  .diag ul{{margin:4px 0;padding-left:18px;}}
+  .ok{{color:#2a8a4a;}}
+  .fail{{color:#c33;}}
+  .footer{{padding:18px 32px;text-align:center;font:11px/1.5 'Helvetica Neue',Arial,sans-serif;color:#ccc;background:#faf8f4;border-top:1px solid #ddd;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <h1>AI + Finance 国际晨报</h1>
+    <hr class="rule">
+    <div class="dateline">{date_str}</div>
+  </div>
+  <div class="lede">
+    <div class="lede-label">今日主线</div>
+    <div class="lede-text">{one_line}</div>
+  </div>
+  {sections_html}
+  <div class="footer-area">
+    <details>
+      <summary>Feed 抓取报告</summary>
+      <div class="diag">{diag_html}</div>
+    </details>
+    {errors_html}
+  </div>
+  <div class="footer">Better Morning &nbsp;·&nbsp; 每日 07:00 北京时间送达</div>
+</div>
+</body>
+</html>"""
+
     def generate_markdown_digest(
         self,
         collection_summaries: Dict[str, str],
@@ -249,7 +376,7 @@ class DocumentGenerator:
 
         return "\n\n".join(final_document_parts)
 
-    def send_via_email(self, subject: str, body: str, recipient_email: str):
+    def send_via_email(self, subject: str, body: str, recipient_email: str, raw_html: bool = False):
         if (
             not self.output_settings.smtp_server
             or not self.output_settings.smtp_port
@@ -267,8 +394,7 @@ class DocumentGenerator:
                 self.output_settings.smtp_password_env, "SMTP Password"
             )
 
-            # Convert the Markdown body to HTML
-            html_body = markdown2.markdown(body)
+            html_body = body if raw_html else markdown2.markdown(body)
             recipient_emails = self._parse_recipient_emails(recipient_email)
             if not recipient_emails:
                 print("Error: No recipient email configured. Cannot send email.")
@@ -285,15 +411,22 @@ class DocumentGenerator:
 
             if self.output_settings.smtp_port == 465:
                 with smtplib.SMTP_SSL(
-                    self.output_settings.smtp_server, self.output_settings.smtp_port
+                    self.output_settings.smtp_server,
+                    self.output_settings.smtp_port,
+                    timeout=30,
                 ) as server:
+                    server.ehlo()
                     server.login(smtp_username, smtp_password)
                     server.send_message(msg, to_addrs=recipient_emails)
             else:
                 with smtplib.SMTP(
-                    self.output_settings.smtp_server, self.output_settings.smtp_port
+                    self.output_settings.smtp_server,
+                    self.output_settings.smtp_port,
+                    timeout=30,
                 ) as server:
+                    server.ehlo()          # announce ourselves before STARTTLS
                     server.starttls()
+                    server.ehlo()          # re-announce after TLS upgrade (required by RFC)
                     server.login(smtp_username, smtp_password)
                     server.send_message(msg, to_addrs=recipient_emails)
             print(
@@ -301,7 +434,9 @@ class DocumentGenerator:
                 + ", ".join(recipient_emails)
             )
         except Exception as e:
-            print(f"Error sending email digest: {e}")
+            import traceback
+            print(f"Error sending email digest: {type(e).__name__}: {e}")
+            traceback.print_exc()
 
     def create_github_release(
         self, tag_name: str, release_name: str, body: str, repo_slug: str

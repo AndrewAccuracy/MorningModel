@@ -68,13 +68,14 @@ async def process_collection(
         )
         digest_context = document_generator.get_context_for_llm()
 
-        # 3. Use LLM to select which articles to fetch content for
-        if filtering_enabled:
-            articles_to_fetch = new_articles
-        else:
-            articles_to_fetch = await llm_summarizer.select_articles_for_fetching(
-                new_articles, collection_config.collection_prompt, digest_context
-            )
+        # 3. Use LLM to pre-select which articles to fetch content for.
+        # This runs regardless of whether filter_query is set, reducing the
+        # expensive content-extraction step from ALL articles to a manageable
+        # subset (~3× the final target).  The per-article LLM filter that runs
+        # after content extraction remains in place for fine-grained selection.
+        articles_to_fetch = await llm_summarizer.select_articles_for_fetching(
+            new_articles, collection_config.collection_prompt, digest_context
+        )
         if not articles_to_fetch:
             print(
                 f"LLM did not select any articles to fetch for '{collection_config.name}'."
@@ -334,9 +335,14 @@ async def main():
             print(f"Digest saved to daily-digest-{today.strftime('%Y-%m-%d')}.md")
         else:
             subject = f"[Morning Brief] AI + Finance Daily Digest | {today.strftime('%Y-%m-%d')}"
-            document_generator.send_via_email(
-                subject, final_markdown_digest, recipient_email
+            email_html = document_generator.generate_email_html(
+                collection_summaries,
+                today,
+                fetch_reports,
+                collection_errors or None,
+                one_line_take,
             )
+            document_generator.send_via_email(subject, email_html, recipient_email, raw_html=True)
     else:
         print(
             f"Warning: Unknown output type '{output_type}'. Digest only printed to console."

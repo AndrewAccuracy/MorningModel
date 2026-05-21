@@ -62,7 +62,7 @@ Article summaries:
 # - filter_prompt_template: {filter_query}, {title}, {link}, {content}
 
 [content_extraction_settings]
-follow_article_links = true
+follow_article_links = false
 
 [filter_settings]
 filter_model = "openai/gpt-4o"
@@ -72,6 +72,6 @@ filter_model = "openai/gpt-4o"
 context_digest_size = 4
 
 [output_settings]
-output_type = "email"         # Options: "github_release", "email" (github_release is not working)
-smtp_server = "smtp.mail.me.com" # iCloud Mail SMTP server
-smtp_port = 587                  # iCloud uses STARTTLS on port 587
+output_type = "email"         # Options: "github_release", "email"
+smtp_server = "smtp.qq.com"      # QQ Mail SMTP server
+smtp_port = 465                  # QQ Mail uses SSL on port 465
