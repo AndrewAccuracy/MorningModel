@@ -112,6 +112,10 @@ class DocumentGenerator:
         return collection_name
 
     def _generate_one_line_take(self, collection_summaries: Dict[str, str]) -> str:
+        """Static fallback used when the LLM one-line take is unavailable."""
+        lang = (self.global_config.llm_settings.output_language or "English").lower()
+        is_chinese = "chinese" in lang or "中文" in lang
+
         available_sections = [
             self._section_title(name)
             for name, summary in collection_summaries.items()
@@ -127,17 +131,31 @@ class DocumentGenerator:
             }
         ]
         if not available_sections:
-            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
-
-        if {"AI Top 10", "Finance Top 10"}.issubset(set(available_sections)):
             return (
-                "今天重点同时看 AI 产业主线与全球宏观/市场风险偏好变化，继续跟踪大模型基础设施、央行预期和风险资产定价。"
+                "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+                if is_chinese
+                else "Not enough high-quality content today to identify a clear main thread."
             )
-        if "AI Top 10" in available_sections:
-            return "今天重点看 AI 产业与政策主线，继续跟踪 frontier models、agents 和算力基础设施变化。"
-        if "Finance Top 10" in available_sections:
-            return "今天重点看全球宏观与市场风险偏好变化，继续跟踪央行预期、利率路径和主要资产定价。"
-        return "今天重点看各栏目中最具国际影响力的新变化，并继续跟踪其后续扩散。"
+
+        has_ai  = "AI Top 10" in available_sections
+        has_fin = "Finance Top 10" in available_sections
+
+        if is_chinese:
+            if has_ai and has_fin:
+                return "今天重点同时看 AI 产业主线与全球宏观/市场风险偏好变化，继续跟踪大模型基础设施、央行预期和风险资产定价。"
+            if has_ai:
+                return "今天重点看 AI 产业与政策主线，继续跟踪 frontier models、agents 和算力基础设施变化。"
+            if has_fin:
+                return "今天重点看全球宏观与市场风险偏好变化，继续跟踪央行预期、利率路径和主要资产定价。"
+            return "今天重点看各栏目中最具国际影响力的新变化，并继续跟踪其后续扩散。"
+        else:
+            if has_ai and has_fin:
+                return "Today focus on AI industry trends and global macro/risk-appetite shifts; track model infrastructure, central bank signals, and risk-asset pricing."
+            if has_ai:
+                return "Today focus on the AI industry and policy front; track frontier models, agents, and compute infrastructure changes."
+            if has_fin:
+                return "Today focus on global macro and risk-appetite shifts; track central bank expectations, rate paths, and major asset pricing."
+            return "Today focus on the most internationally significant new developments across all sections and follow their downstream impact."
 
     def generate_email_html(
         self,

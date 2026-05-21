@@ -724,18 +724,20 @@ Articles:
             print(
                 "Warning: Collection summary failed. Retrying with a shorter prompt and no previous digest context."
             )
-            retry_prompt = f"""请从下面候选文章摘要中选出最多 {self.settings.n_most_important_news} 条最重要内容，生成中文编号列表。
-要求：
-1. 每条保留原文标题；
-2. 每条包含来源 Markdown 链接；
-3. 每条包含 2-4 句摘要；
-4. 每条最后必须写一句“入选优势：...”，说明它为什么值得占据最终列表的一个位置；
-5. 不要写开场白、结语或栏目标题。
+            retry_prompt = f"""From the article summaries below, select up to {self.settings.n_most_important_news} most important items and return a numbered list.
 
-栏目要求：
+Requirements:
+1. Keep the original title for each item.
+2. Include a Markdown source link for each item.
+3. Write a 2-4 sentence summary for each item.
+4. End each item with a short "Selection advantage: ..." note explaining why it earned a slot.
+5. No introduction, conclusion, or section headers — just the numbered list.
+6. Write the entire output in {self.settings.output_language}.
+
+Section focus:
 {collection_prompt or "A general news digest."}
 
-候选文章摘要：
+Article summaries:
 {concatenated_summaries}
 """
             final_summary = await self._summarize_text_content(
@@ -757,7 +759,7 @@ Articles:
                 fallback_items.append(
                     f"{index}. **{article.title}** ([{article.feed_name or 'Source'}]({article.link}))\n"
                     f"{article.summary}\n"
-                    "入选优势：该条已通过栏目过滤并进入候选摘要，具备相对更高的信息密度和跟踪价值。"
+                    "Selection advantage: passed collection filter with above-average information density."
                 )
             final_summary = "\n\n".join(fallback_items)
 
@@ -785,8 +787,11 @@ Articles:
                 "No content available for collection summary.",
             }
         }
+        _no_content_fallback = (
+            "Not enough high-quality content today to identify a clear main thread — check back next run."
+        )
         if not valid_summaries:
-            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+            return _no_content_fallback
 
         summaries_text = "\n\n".join(
             f"## {sanitize_untrusted_text(name, max_chars=100)}\n"
@@ -796,13 +801,16 @@ Articles:
         context = wrap_untrusted(
             "previous digests", previous_digests_context or "", max_chars=8000
         )
-        prompt = f"""请基于下面的晨报栏目内容，写一句中文 One-line Take。
-要求：
-1. 只写一句话，不要标题；
-2. 直接概括今天 AI 与/或金融市场的共同主线；
-3. 不要使用空泛套话；
-4. 如果某个栏目没有有效内容，不要假装它有内容；
-5. 控制在 45 个中文词以内。
+        lang = self.settings.output_language
+        prompt = f"""Based on today's digest sections below, write a single One-line Take.
+
+Requirements:
+1. Write exactly ONE sentence — no title, no bullet points.
+2. Directly capture the main thread across AI and/or financial markets today.
+3. Avoid vague filler phrases.
+4. If a section has no valid content, do not pretend it does.
+5. Keep it concise (under 50 words).
+6. Write the sentence in {lang}.
 
 Previous digests context:
 {context}
@@ -810,7 +818,7 @@ Previous digests context:
 Today's sections:
 {summaries_text}
 
-One-line Take:"""
+One-line Take ({lang}):"""
 
         take = await self._summarize_text_content(
             text_content=summaries_text,
@@ -820,7 +828,7 @@ One-line Take:"""
             timeout=120,
         )
         if take.startswith("[Error:"):
-            return "今天没有足够高质量的新内容形成明确主线，建议等待下一次更新。"
+            return _no_content_fallback
         return take.strip().splitlines()[0]
 
     async def filter_article(

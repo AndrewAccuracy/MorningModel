@@ -295,6 +295,12 @@ def apply_llm_env_overrides(config: GlobalConfig) -> GlobalConfig:
     if filter_model:
         config.filter_settings.filter_model = filter_model
 
+    # Allow output language override via env var.
+    # Example: BETTER_MORNING_OUTPUT_LANGUAGE=English
+    output_language = os.getenv("BETTER_MORNING_OUTPUT_LANGUAGE")
+    if output_language:
+        config.llm_settings.output_language = output_language
+
     return config
 
 

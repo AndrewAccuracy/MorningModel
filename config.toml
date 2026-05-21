@@ -2,6 +2,9 @@
 reasoner_model = "openai/gpt-4o"
 light_model = "openai/gpt-4o-mini"
 temperature = 0.3
+# Output language for all LLM-generated summaries and the one-line take.
+# Common values: "Chinese", "English", "Japanese", "Spanish", "French" ...
+# Override without editing this file: BETTER_MORNING_OUTPUT_LANGUAGE=English
 output_language = "Chinese"
 thinking_effort_reasoner = "medium"
 thinking_effort_light = "medium"
