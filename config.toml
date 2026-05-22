@@ -74,6 +74,11 @@ filter_model = "openai/gpt-4o"
 # This helps avoid repeating similar news and provides better context for relevance decisions
 context_digest_size = 4
 
+# Days to keep processed articles in history.
+# For a weekly digest, set this to at least 14 so last week's articles
+# stay in history and cannot re-appear in the next run.
+history_retention_days = 14
+
 [output_settings]
 output_type = "email"      # Options: "github_release", "email"
 email_provider = "icloud"  # Supported: gmail, outlook, icloud, qq, 163, 126, yahoo, zoho, custom

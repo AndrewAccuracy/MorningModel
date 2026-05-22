@@ -1,5 +1,5 @@
 name = "Finance Top 10"
-max_age = "last-digest"
+max_age = "7d"
 follow_article_links = false
 
 collection_prompt = """

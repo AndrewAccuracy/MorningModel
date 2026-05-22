@@ -1,5 +1,5 @@
 name = "AI Top 10"
-max_age = "last-digest"
+max_age = "7d"
 
 collection_prompt = """
 请输出“AI Top 10”。
