@@ -66,6 +66,8 @@ class GlobalConfig(BaseModel):
         3  # Number of previous digests to send as context to models
     )
     history_retention_days: int = 7  # Days to keep articles in history
+    adaptive_search_enabled: bool = True
+    adaptive_search_lookback_days: int = 7
     llm_settings: LLMSettings = Field(default_factory=LLMSettings)
     filter_settings: FilterSettings = Field(default_factory=FilterSettings)
     content_extraction_settings: ContentExtractionSettings = Field(

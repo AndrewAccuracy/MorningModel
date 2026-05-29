@@ -213,6 +213,82 @@ async def test_select_articles_for_fetching_filters_low_trust_low_signal_candida
 
 
 @pytest.mark.asyncio
+async def test_select_articles_for_fetching_prefers_high_impact_story_signals():
+    settings = LLMSettings(
+        reasoner_model="openai/gpt-4o",
+        n_most_important_news=2,
+        api_key="test-key",
+    )
+    global_config = GlobalConfig()
+    summarizer = LLMSummarizer(settings, global_config)
+
+    articles = [
+        Article(
+            id="impact-1",
+            title="Federal Reserve signals new rates path after inflation surprise",
+            link="https://www.wsj.com/economy/fed-rates",
+            published_date=datetime(2025, 1, 3, tzinfo=timezone.utc),
+            summary="Markets repriced after the Fed highlighted inflation and treasury implications.",
+            feed_name="WSJ Markets",
+        ),
+        Article(
+            id="feature-1",
+            title="How I organize my AI reading workflow",
+            link="https://medium.com/@writer/my-ai-workflow",
+            published_date=datetime(2025, 1, 3, tzinfo=timezone.utc),
+            summary="A personal productivity explainer.",
+            feed_name="Medium AI",
+        ),
+    ]
+
+    selected = await summarizer.select_articles_for_fetching(articles)
+
+    assert selected[0].id == "impact-1"
+
+
+@pytest.mark.asyncio
+async def test_select_articles_for_fetching_boosts_cross_source_resonance():
+    settings = LLMSettings(
+        reasoner_model="openai/gpt-4o",
+        n_most_important_news=2,
+        api_key="test-key",
+    )
+    global_config = GlobalConfig()
+    summarizer = LLMSummarizer(settings, global_config)
+
+    articles = [
+        Article(
+            id="story-1",
+            title="OpenAI launches new enterprise agent platform",
+            link="https://techcrunch.com/openai-enterprise-agent",
+            published_date=datetime(2025, 1, 4, 12, tzinfo=timezone.utc),
+            summary="The launch targets enterprise workflow automation and security controls.",
+            feed_name="TechCrunch AI",
+        ),
+        Article(
+            id="story-2",
+            title="OpenAI launches new enterprise agent platform for large companies",
+            link="https://www.theverge.com/openai-enterprise-agent",
+            published_date=datetime(2025, 1, 4, 13, tzinfo=timezone.utc),
+            summary="A second outlet confirms the same launch with additional go-to-market details.",
+            feed_name="The Verge",
+        ),
+        Article(
+            id="solo-1",
+            title="Startup shares lessons from internal prompt library",
+            link="https://medium.com/@writer/prompt-library",
+            published_date=datetime(2025, 1, 4, 14, tzinfo=timezone.utc),
+            summary="A narrower workflow story without broad market or policy implications.",
+            feed_name="Medium AI",
+        ),
+    ]
+
+    selected = await summarizer.select_articles_for_fetching(articles)
+
+    assert selected[0].id in {"story-1", "story-2"}
+
+
+@pytest.mark.asyncio
 async def test_summarize_text_article():
     """Test text article summarization"""
     settings = LLMSettings(
