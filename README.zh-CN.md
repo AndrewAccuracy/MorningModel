@@ -3,10 +3,12 @@
 <p align="center"><sub>基于 <a href="https://github.com/00sapo/better-morning"><b>better-morning</b></a> 改造：保留可配置 RSS collection、正文抽取、LLM 摘要、历史记录和定时投递能力；MorningModel 是面向 <b>AI + Finance 国际晨报</b> 的专门版本。</sub></p>
 
 <p align="center">
-  <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — AI + Finance daily brief" width="100%" />
+  <a href="docs/assets/morningmodel-banner.html">
+    <img src="docs/assets/morningmodel-banner.svg" alt="MorningModel — 41 RSS feeds · 每日晨报" width="100%" />
+  </a>
 </p>
 
-> **RSS 是信息洪流，收件箱才是终点。** MorningModel 会从 AI 产业、AI 研究与安全、全球金融市场的高信号 RSS 源中抓取内容，过滤低质量条目，用你已经配置好的 LLM provider 生成中文晨报，并通过 iCloud SMTP 发到邮箱。**41 个精选信息源** · **3 个栏目** · **3 个 LLM 提供商**（OpenAI · DeepSeek · Gemini）· `last-digest` 去重 · 对所有外部内容做 prompt-injection 防护 · 本地 `./run.sh` 或 GitHub Actions 每天北京时间 07:00 自动运行。
+> **RSS 是信息洪流，收件箱才是终点。** MorningModel 会从 AI 产业、AI 研究与安全、全球金融市场的高信号 RSS 源中抓取内容，用 LLM 评分过滤，跨历史去重，并发送排序后的 **中文晨报**。**41 个精选信息源** · **3 个栏目** · **8 个邮件提供商**（Gmail · Outlook · QQ · iCloud 等）· **3 个 LLM 提供商**（OpenAI · DeepSeek · Gemini via LiteLLM）· `last-digest` 去重 · prompt-injection 防护 · 本地 `./run.sh` 或 **GitHub Actions 每天北京时间 07:00** 自动运行。
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square" /></a>
@@ -18,18 +20,64 @@
 </p>
 
 <p align="center">
-  <b>简体中文</b> · <a href="README.md">English</a> · <a href="docs/assets/morningmodel-banner.html">打开 HTML Banner 设计稿</a>
+  <b>简体中文</b> · <a href="README.md">English</a> · <a href="docs/assets/morningmodel-banner.html">🎨 Banner HTML 设计稿</a> · <a href="docs/assets/morningmodel-email-preview.html">📧 邮件模板预览</a>
 </p>
 
 ---
 
 ## 你会收到什么
 
-每次成功运行后，邮件里会有三个 Top 10 栏目和一句编辑式总览。每条入选新闻都会带上 **入选优势**，解释它为什么比普通候选更值得占位。
+每次成功运行后，邮件里会有四个部分——三个排序后的 Top 10 栏目和一句编辑式总览。每条入选新闻都会带上 **入选优势**，解释它为什么比普通候选更值得占位。
 
-<p align="center">
-  <img src="docs/assets/morningmodel-email-preview.png" alt="MorningModel 邮件输出预览" width="100%" />
-</p>
+邮件采用**报纸排版**——衬线字体、报头、可折叠的抓取报告。打开实时模板：
+
+> 👉 **[morningmodel-email-preview.html](docs/assets/morningmodel-email-preview.html)** — 来自 2026-05-20 真实运行结果
+
+<details>
+<summary><b>📄 邮件 HTML 结构（点击展开）</b></summary>
+
+```html
+<!-- 报头 -->
+<div class="masthead">
+  <h1>AI + Finance 国际晨报</h1>
+  <div class="dateline">Wednesday, May 20, 2026</div>
+</div>
+
+<!-- 今日主线（斜体导语） -->
+<div class="lede">
+  <div class="lede-label">今日主线</div>
+  <div class="lede-text">
+    今天重点看 Google I/O 宣布搜索范式转变与全面 AI 代理化，
+    同时全球债市抛售潮与中东能源冲击构成宏观对冲压力。
+  </div>
+</div>
+
+<!-- 每个 collection 对应一个 section -->
+<div class="section">
+  <div class="section-title">AI Top 10</div>
+  <div class="section-content">
+    <!-- markdown2 渲染的编号列表，含 Markdown 链接 -->
+    <ol>
+      <li><strong>Google Search as you know it is over</strong>
+        (<a href="…">TechCrunch AI</a>)
+        Google 在 I/O 大会上宣布…  入选优势：…
+      </li>
+      …
+    </ol>
+  </div>
+</div>
+
+<!-- 抓取报告——默认折叠 -->
+<details>
+  <summary>Feed 抓取报告</summary>
+  <table>…</table>
+</details>
+
+<!-- 页脚 -->
+<div class="footer">Better Morning · 每日 07:00 北京时间送达</div>
+```
+
+</details>
 
 | 栏目 | 覆盖范围 |
 |---|---|
@@ -72,6 +120,7 @@ MorningModel 的目标很简单：
 | **本地回退** | SMTP 凭据缺失或发送失败时，保存 `daily-digest-YYYY-MM-DD.md`。 |
 | **自动化** | 本地 `./run.sh` · 带间隔保护的 `./run.sh --scheduled` · GitHub Actions 每天 23:00 UTC 运行。 |
 | **安全防护** | RSS、网页、PDF、历史摘要都按不可信输入处理；见 [`src/better_morning/prompt_security.py`](src/better_morning/prompt_security.py)。 |
+| **License** | GPL-3.0（继承自上游） |
 
 ---
 
@@ -258,6 +307,9 @@ macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一�
      │  iCloud SMTP    │               │  daily-digest-   │
      │  HTML email     │               │  YYYY-MM-DD.md   │
      └─────────────────┘               └──────────────────┘
+                                │
+                                ▼
+                    history/*.json  (articles + digests + scheduler)
 ```
 
 | Layer | Stack |
@@ -266,8 +318,9 @@ macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一�
 | RSS | `feedparser` · TOML collection |
 | Extraction | `trafilatura` · Playwright |
 | LLM | `litellm` · reasoner / light / filter 三类模型角色 |
-| Security | [`prompt_security.py`](src/better_morning/prompt_security.py) |
+| Security | [`prompt_security.py`](src/better_morning/prompt_security.py) — 包装、归一化、注入启发式检测 |
 | Output | `markdown2` → HTML email · 本地 `.md` 回退 |
+| Config | [`config.toml`](config.toml)（全局提示词）+ `collections/*.toml`（feeds + 过滤器） |
 | CI | [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml) |
 | Tests | `pytest` under [`tests/`](tests/) |
 
@@ -335,16 +388,16 @@ GitHub Actions 会缓存 `history/`，让跨天去重继续生效。
 
 | Surface | State |
 |---|---|
-| 3 个 collection · 41 个 feed | stable |
-| LiteLLM 多 provider | stable |
-| `last-digest` 去重 + 历史上下文 | stable |
-| 正文抽取（trafilatura + Playwright） | stable |
-| prompt-injection guardrails | stable |
-| iCloud SMTP + `.md` 回退 | stable |
-| `./run.sh --scheduled` 间隔保护 | stable |
-| GitHub Actions daily cron + history cache | stable |
-| Telegram / Slack 输出 | planned |
-| Web preview UI | planned |
+| 3 个 collection · 41 个 feed | ✅ 稳定 |
+| LiteLLM 多 provider | ✅ 稳定 |
+| `last-digest` 去重 + 历史上下文 | ✅ 稳定 |
+| 正文抽取（trafilatura + Playwright） | ✅ 稳定 |
+| prompt-injection guardrails | ✅ 稳定 |
+| iCloud SMTP + `.md` 回退 | ✅ 稳定 |
+| `./run.sh --scheduled` 间隔保护 | ✅ 稳定 |
+| GitHub Actions daily cron + history cache | ✅ 稳定 |
+| Telegram / Slack 输出 | ⏳ 计划中 |
+| Web preview UI | ⏳ 计划中 |
 
 ---
 
