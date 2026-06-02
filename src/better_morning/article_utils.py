@@ -31,6 +31,26 @@ COMMON_TITLE_NOISE = {
     "podcast",
     "live",
     "update",
+    "today",
+    "says",
+    "said",
+    "announces",
+    "announced",
+    "launches",
+    "launch",
+    "introducing",
+    "first",
+    "after",
+    "into",
+    "over",
+    "its",
+    "their",
+    "your",
+    "you",
+    "this",
+    "that",
+    "these",
+    "those",
 }
 
 SPECULATIVE_TERMS = {
@@ -59,6 +79,39 @@ LOW_SIGNAL_TERMS = {
     "personal finance",
 }
 
+HIGH_IMPACT_TERMS = {
+    "acquisition",
+    "agent",
+    "antitrust",
+    "approval",
+    "bankruptcy",
+    "central bank",
+    "earnings",
+    "ecb",
+    "federal reserve",
+    "fed",
+    "funding",
+    "gdp",
+    "guidance",
+    "inflation",
+    "ipo",
+    "layoffs",
+    "lawsuit",
+    "merger",
+    "model",
+    "openai",
+    "policy",
+    "rates",
+    "regulation",
+    "release",
+    "revenue",
+    "sanctions",
+    "search",
+    "security",
+    "tariff",
+    "treasury",
+}
+
 
 def extract_domain(url: str) -> str:
     try:
@@ -85,6 +138,21 @@ def title_tokens(title: str) -> list[str]:
         and (len(token) > 2 or token.isdigit())
     ]
     return tokens
+
+
+def extract_topic_keywords(title: str, summary: str | None = None, limit: int = 5) -> list[str]:
+    combined = " ".join(part for part in [title or "", summary or ""] if part)
+    tokens = title_tokens(combined)
+    ordered_unique: list[str] = []
+    seen = set()
+    for token in tokens:
+        if token in seen:
+            continue
+        seen.add(token)
+        ordered_unique.append(token)
+        if len(ordered_unique) >= limit:
+            break
+    return ordered_unique
 
 
 def title_signature(title: str) -> str:
@@ -192,3 +260,9 @@ def estimate_article_quality_signals(title: str, summary: str | None) -> tuple[b
     speculative = _matches_any(joined, SPECULATIVE_TERMS)
     low_signal = _matches_any(joined, LOW_SIGNAL_TERMS)
     return speculative, low_signal
+
+
+def impact_keyword_score(title: str, summary: str | None) -> float:
+    joined = " ".join(part for part in [title or "", summary or ""] if part).lower()
+    matches = sum(1 for phrase in HIGH_IMPACT_TERMS if phrase in joined)
+    return min(4.0, matches * 0.75)

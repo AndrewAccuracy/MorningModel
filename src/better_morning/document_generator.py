@@ -296,6 +296,7 @@ class DocumentGenerator:
         fetch_reports: Optional[Dict[str, dict]] = None,
         collection_errors: Optional[Dict[str, str]] = None,
         one_line_take: Optional[str] = None,
+        search_memory_reports: Optional[Dict[str, str]] = None,
     ) -> str:
         """Formats the digest with collection sections and a one-line take."""
         title = f"# AI + Finance Daily Brief - {date.strftime('%Y-%m-%d')}"
@@ -366,6 +367,17 @@ class DocumentGenerator:
             for source in skipped_sources:
                 skipped_sources_section += f"- {source}\n"
 
+        search_memory_section = ""
+        if search_memory_reports:
+            search_memory_section = "\n## Adaptive Search Debug Report\n\n"
+            search_memory_section += (
+                "*This section is for local debugging only. It shows how source memory, topic memory, diversity constraints, and exploration lanes shaped the current run.*\n\n"
+            )
+            for collection_name, report in search_memory_reports.items():
+                if not report:
+                    continue
+                search_memory_section += f"### {collection_name}\n\n{report}\n\n"
+
         detailed_sections = ["## Detailed Summaries"]
         for collection_name, articles in articles_by_collection.items():
             # Filter out articles that might have failed summarization
@@ -390,6 +402,8 @@ class DocumentGenerator:
             final_document_parts.extend(["---", feed_report_section])
         if skipped_sources_section:
             final_document_parts.extend(["---", skipped_sources_section])
+        if search_memory_section:
+            final_document_parts.extend(["---", search_memory_section])
         final_document_parts.extend(["---"] + detailed_sections)
 
         return "\n\n".join(final_document_parts)

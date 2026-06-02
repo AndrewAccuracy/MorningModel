@@ -14,11 +14,12 @@ from better_morning.rss_fetcher import RSSFetcher, Article
 from better_morning.content_extractor import ContentExtractor
 from better_morning.llm_summarizer import LLMSummarizer
 from better_morning.document_generator import DocumentGenerator
+from better_morning.search_memory import SearchMemory
 
 
 async def process_collection(
     collection_path: str, global_config: GlobalConfig
-) -> tuple[str, str, List[Article], List[str], dict]:
+) -> tuple[str, str, List[Article], List[str], dict, str]:
     """
     Processes a single news collection: fetches, extracts, summarizes.
     Returns the collection name, its summary, the list of summarized articles, skipped sources, and fetch report.
@@ -36,6 +37,14 @@ async def process_collection(
     )
 
     skipped_sources = set()
+    search_memory = (
+        SearchMemory(
+            collection_config.name,
+            lookback_days=global_config.adaptive_search_lookback_days,
+        )
+        if global_config.adaptive_search_enabled
+        else None
+    )
 
     try:
         # 1. Fetch new RSS articles
@@ -43,14 +52,19 @@ async def process_collection(
             collection_config.name, collection_config.max_age
         )
         print(f"Found {len(new_articles)} new articles for {collection_config.name}.")
+        if search_memory is not None:
+            search_memory.record_observed_articles(new_articles)
         if not new_articles:
             fetch_report = rss_fetcher.get_fetch_report()
+            if search_memory is not None:
+                search_memory.save()
             return (
                 collection_config.name,
                 "No new articles found.",
                 [],
                 [],
                 fetch_report,
+                search_memory.build_debug_report() if search_memory is not None else "",
             )
 
         # Resolve filter settings (collection defaults, overridden by feed)
@@ -74,19 +88,25 @@ async def process_collection(
         # subset (~3× the final target).  The per-article LLM filter that runs
         # after content extraction remains in place for fine-grained selection.
         articles_to_fetch = await llm_summarizer.select_articles_for_fetching(
-            new_articles, collection_config.collection_prompt, digest_context
+            new_articles,
+            collection_config.collection_prompt,
+            digest_context,
+            search_memory=search_memory,
         )
         if not articles_to_fetch:
             print(
                 f"LLM did not select any articles to fetch for '{collection_config.name}'."
             )
             fetch_report = rss_fetcher.get_fetch_report()
+            if search_memory is not None:
+                search_memory.save()
             return (
                 collection_config.name,
                 "No articles selected for fetching.",
                 [],
                 [],
                 fetch_report,
+                search_memory.build_debug_report() if search_memory is not None else "",
             )
 
         # 3. Extract content for the selected articles with batching
@@ -143,6 +163,9 @@ async def process_collection(
                 )
                 skipped_sources.add(source_url)
 
+        if search_memory is not None:
+            search_memory.record_processed_articles(processed_articles)
+
         articles_with_content = [
             article
             for article in processed_articles
@@ -174,12 +197,15 @@ async def process_collection(
 
         if not articles_with_content:
             fetch_report = rss_fetcher.get_fetch_report()
+            if search_memory is not None:
+                search_memory.save()
             return (
                 collection_config.name,
                 "No articles with extractable content.",
                 [],
                 list(skipped_sources),
                 fetch_report,
+                search_memory.build_debug_report() if search_memory is not None else "",
             )
 
         # 4. Summarize the collection and individual articles
@@ -197,6 +223,12 @@ async def process_collection(
 
         # Get fetch report
         fetch_report = rss_fetcher.get_fetch_report()
+        debug_report = ""
+        if search_memory is not None:
+            scope_plan = search_memory.plan_scope(new_articles, 3 * collection_config.llm_settings.n_most_important_news)
+            search_memory.record_selected_articles(summarized_articles)
+            debug_report = search_memory.build_debug_report(scope_plan)
+            search_memory.save()
 
         return (
             collection_config.name,
@@ -204,6 +236,7 @@ async def process_collection(
             summarized_articles,
             list(skipped_sources),
             fetch_report,
+            debug_report,
         )
     finally:
         await content_extractor.close_browser()
@@ -246,10 +279,11 @@ async def main():
                     [],
                     [f"Collection {collection_name} failed"],
                     {"successful": [], "failed": [], "total_feeds": 0},
+                    "",
                 )
             )
 
-    collection_results: List[tuple[str, str, List[Article], List[str], dict]] = (
+    collection_results: List[tuple[str, str, List[Article], List[str], dict, str]] = (
         collection_results
     )
 
@@ -264,9 +298,12 @@ async def main():
     # Collect all unique skipped sources from all processing runs
     skipped_sources = set()
     fetch_reports = {}
-    for name, _, _, sources, fetch_report in collection_results:
+    search_memory_reports: Dict[str, str] = {}
+    for name, _, _, sources, fetch_report, debug_report in collection_results:
         skipped_sources.update(sources)
         fetch_reports[name] = fetch_report
+        if debug_report:
+            search_memory_reports[name] = debug_report
 
     # 4. Generate and output the final markdown digest
     today = datetime.now(timezone.utc)
@@ -286,6 +323,7 @@ async def main():
         fetch_reports,
         collection_errors or None,
         one_line_take,
+        search_memory_reports,
     )
 
     # 5. Output the digest based on global settings

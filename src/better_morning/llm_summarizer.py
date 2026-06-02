@@ -18,9 +18,12 @@ from .rss_fetcher import Article
 from .article_utils import (
     estimate_article_quality_signals,
     extract_domain,
+    extract_topic_keywords,
+    impact_keyword_score,
     infer_source_scores,
     title_similarity,
 )
+from .search_memory import SearchMemory
 
 
 # Rough estimate: 1 token = 4 characters (common for English text)
@@ -109,6 +112,7 @@ class LLMSummarizer:
         articles: List[Article],
         collection_prompt: Optional[str] = None,
         previous_digests_context: Optional[str] = None,
+        search_memory: Optional[SearchMemory] = None,
     ) -> List[Article]:
         """
         Uses the reasoner LLM to select the most relevant articles for content fetching
@@ -117,14 +121,19 @@ class LLMSummarizer:
         if not articles:
             return []
 
-        articles = self._prepare_candidate_articles(articles)
+        articles = self._prepare_candidate_articles(articles, search_memory)
         if not articles:
             print("No candidate articles remained after quality and dedup filtering.")
             return []
 
-        # Determine the number of articles to select: 3x the number for the final summary,
-        # but not more than the total number of available articles.
-        num_to_select = min(len(articles), 3 * self.settings.n_most_important_news)
+        scope_plan = None
+        base_selection_count = 3 * self.settings.n_most_important_news
+        if search_memory is not None:
+            scope_plan = search_memory.plan_scope(articles, base_selection_count)
+            articles = scope_plan.curated_articles
+            num_to_select = scope_plan.fetch_budget
+        else:
+            num_to_select = min(len(articles), base_selection_count)
         if num_to_select == 0:
             return []
 
@@ -259,7 +268,35 @@ Articles:
             readership_override=readership_override,
         )
 
-    def _article_priority_score(self, article: Article) -> float:
+    def _coverage_cluster_size(
+        self,
+        article: Article,
+        peer_articles: Optional[List[Article]] = None,
+    ) -> int:
+        if not peer_articles:
+            return 1
+        article_topics = set(extract_topic_keywords(article.title, article.summary))
+        article_domain = extract_domain(str(article.link))
+        cluster_domains = {article_domain}
+        cluster_size = 1
+        for peer in peer_articles:
+            if peer.id == article.id:
+                continue
+            similarity = title_similarity(article.title, peer.title)
+            peer_topics = set(extract_topic_keywords(peer.title, peer.summary))
+            topic_overlap = len(article_topics & peer_topics)
+            if similarity >= 0.42 or topic_overlap >= 2:
+                cluster_size += 1
+                cluster_domains.add(extract_domain(str(peer.link)))
+        # Cross-source resonance matters more than many copies from one place.
+        return min(cluster_size + max(0, len(cluster_domains) - 1), 6)
+
+    def _article_priority_score(
+        self,
+        article: Article,
+        search_memory: Optional[SearchMemory] = None,
+        peer_articles: Optional[List[Article]] = None,
+    ) -> float:
         credibility, readership = self._source_scores(article)
         speculative, low_signal = estimate_article_quality_signals(
             article.title, article.summary
@@ -276,21 +313,38 @@ Articles:
                     ).total_seconds()
                     / 3600,
                 )
-                recency_score = max(0.0, 2.0 - min(hours_old / 24, 2.0))
+                # A softer decay works better for a weekly editorial lens than a daily sprint.
+                recency_score = max(0.0, 2.0 - min(hours_old / 72, 2.0))
             except Exception:
                 recency_score = 0.0
 
         summary_len = len((article.summary or "").split())
         information_density = min(summary_len / 80, 1.5)
+        impact_score = impact_keyword_score(article.title, article.summary)
+        coverage_cluster_size = self._coverage_cluster_size(article, peer_articles)
+        coverage_score = min(3.0, max(0, coverage_cluster_size - 1) * 0.75)
 
-        score = credibility * 3.0 + readership * 2.0 + recency_score + information_density
+        score = (
+            credibility * 3.0
+            + readership * 2.0
+            + recency_score
+            + information_density
+            + impact_score
+            + coverage_score
+        )
         if speculative:
             score -= 2.0
         if low_signal:
             score -= 4.0
+        if search_memory is not None:
+            score += search_memory.article_memory_score(article)
         return score
 
-    def _prepare_candidate_articles(self, articles: List[Article]) -> List[Article]:
+    def _prepare_candidate_articles(
+        self,
+        articles: List[Article],
+        search_memory: Optional[SearchMemory] = None,
+    ) -> List[Article]:
         ranked = []
         for article in articles:
             credibility, readership = self._source_scores(article)
@@ -306,7 +360,16 @@ Articles:
                 print(f"Skipping low-trust speculative candidate: '{article.title}'")
                 continue
 
-            ranked.append((self._article_priority_score(article), article))
+            ranked.append(
+                (
+                    self._article_priority_score(
+                        article,
+                        search_memory,
+                        peer_articles=articles,
+                    ),
+                    article,
+                )
+            )
 
         ranked.sort(
             key=lambda item: (item[0], item[1].published_date),
