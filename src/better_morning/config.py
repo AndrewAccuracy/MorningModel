@@ -37,6 +37,8 @@ class ContentExtractionSettings(BaseModel):
     follow_article_links: bool = False
     parser_type: Optional[str] = "html.parser"
     link_filter_pattern: Optional[str] = None
+    browser_sandbox: bool = True
+    allow_private_networks: bool = False
 
 
 # --- Output Settings ---

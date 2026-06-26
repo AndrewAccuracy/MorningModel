@@ -66,6 +66,12 @@ Article summaries:
 
 [content_extraction_settings]
 follow_article_links = false
+# Keep Chromium's own sandbox enabled by default. Set to false only inside a
+# separate container/runtime sandbox that requires Playwright's --no-sandbox.
+browser_sandbox = true
+# Block localhost/private-network fetches by default to reduce SSRF risk from
+# malicious feeds, redirects, or linked pages.
+allow_private_networks = false
 
 [filter_settings]
 filter_model = "openai/gpt-4o"

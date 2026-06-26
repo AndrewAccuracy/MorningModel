@@ -232,6 +232,88 @@ async def test_rate_limiting_applied(extractor, sample_article):
     assert rate_limit_called
 
 
+@pytest.mark.asyncio
+async def test_browser_launch_uses_sandbox_by_default():
+    extractor = ContentExtractor(ContentExtractionSettings())
+    fake_browser = AsyncMock()
+    fake_playwright = MagicMock()
+    fake_playwright.chromium.launch = AsyncMock(return_value=fake_browser)
+    fake_factory = MagicMock()
+    fake_factory.start = AsyncMock(return_value=fake_playwright)
+
+    with patch(
+        "better_morning.content_extractor.async_playwright",
+        return_value=fake_factory,
+    ):
+        await extractor.start_browser()
+
+    fake_playwright.chromium.launch.assert_awaited_once_with(args=[])
+
+
+@pytest.mark.asyncio
+async def test_browser_launch_can_opt_into_no_sandbox():
+    extractor = ContentExtractor(ContentExtractionSettings(browser_sandbox=False))
+    fake_browser = AsyncMock()
+    fake_playwright = MagicMock()
+    fake_playwright.chromium.launch = AsyncMock(return_value=fake_browser)
+    fake_factory = MagicMock()
+    fake_factory.start = AsyncMock(return_value=fake_playwright)
+
+    with patch(
+        "better_morning.content_extractor.async_playwright",
+        return_value=fake_factory,
+    ):
+        await extractor.start_browser()
+
+    fake_playwright.chromium.launch.assert_awaited_once_with(args=["--no-sandbox"])
+
+
+def test_private_and_local_urls_are_blocked_by_default(extractor):
+    assert extractor._is_safe_fetch_url("https://example.com/article") is True
+    assert extractor._is_safe_fetch_url("http://localhost:8000/admin") is False
+    assert extractor._is_safe_fetch_url("http://127.0.0.1:8000/admin") is False
+    assert extractor._is_safe_fetch_url("http://192.168.1.10/status") is False
+    assert extractor._is_safe_fetch_url("file:///etc/passwd") is False
+
+
+def test_private_network_fetching_requires_explicit_opt_in():
+    extractor = ContentExtractor(ContentExtractionSettings(allow_private_networks=True))
+
+    assert extractor._is_safe_fetch_url("http://127.0.0.1:8000/admin") is True
+
+
+@pytest.mark.asyncio
+async def test_unsafe_article_url_falls_back_to_summary():
+    extractor = ContentExtractor(ContentExtractionSettings())
+    article = Article(
+        id="local-1",
+        title="Local Article",
+        link="http://127.0.0.1:8000/private",
+        published_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        summary="Short summary",
+    )
+
+    with patch.object(extractor, "_fetch_with_requests") as mock_fetch:
+        result = await extractor.get_content(article)
+
+    mock_fetch.assert_not_called()
+    assert result[0].content == "Short summary"
+    assert result[0].content_type == "text/plain"
+
+
+@pytest.mark.asyncio
+async def test_requests_fetch_rejects_redirect_to_localhost(extractor, sample_article):
+    first_response = MagicMock()
+    first_response.is_redirect = True
+    first_response.headers = {"Location": "http://127.0.0.1:8000/private"}
+    first_response.url = str(sample_article.link)
+
+    with patch("better_morning.content_extractor.requests.get", return_value=first_response):
+        response = await extractor._fetch_with_requests(str(sample_article.link))
+
+    assert response is None
+
+
 @pytest.mark.skip(reason="Test takes too long with asyncio timeout")
 @pytest.mark.asyncio
 async def test_timeout_handling(extractor, sample_article):

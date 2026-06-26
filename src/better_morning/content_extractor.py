@@ -3,7 +3,7 @@ import trafilatura
 from playwright.async_api import async_playwright, Browser
 import requests
 import asyncio
-import os
+import ipaddress
 import re
 import time
 import random
@@ -24,6 +24,10 @@ from pydantic import HttpUrl
 from .rss_fetcher import Article
 from .config import ContentExtractionSettings
 from .prompt_security import sanitize_untrusted_text
+
+
+class UnsafeFetchUrl(ValueError):
+    pass
 
 
 class ContentExtractor:
@@ -50,7 +54,8 @@ class ContentExtractor:
         """Starts the Playwright browser instance."""
         if not self.browser:
             self._playwright = await async_playwright().start()
-            self.browser = await self._playwright.chromium.launch(args=["--no-sandbox"])
+            launch_args = [] if self.settings.browser_sandbox else ["--no-sandbox"]
+            self.browser = await self._playwright.chromium.launch(args=launch_args)
 
     async def close_browser(self):
         """Closes the Playwright browser instance."""
@@ -102,6 +107,66 @@ class ContentExtractor:
             print(f"Warning: python-magic detection failed for '{title}': {e}")
             return ""
 
+    def _is_safe_fetch_url(self, url: str) -> bool:
+        """Reject URLs that could make the fetcher touch local/internal services."""
+        try:
+            parsed = urlparse(str(url))
+        except Exception:
+            return False
+
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return False
+
+        if self.settings.allow_private_networks:
+            return True
+
+        host = parsed.hostname.strip("[]").lower().rstrip(".")
+        if host in {"localhost", "0", "0.0.0.0"}:
+            return False
+        if host.endswith((".localhost", ".local", ".internal", ".lan", ".home.arpa")):
+            return False
+
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            return True
+
+        return not any(
+            (
+                address.is_private,
+                address.is_loopback,
+                address.is_link_local,
+                address.is_multicast,
+                address.is_reserved,
+                address.is_unspecified,
+            )
+        )
+
+    def _requests_get_safely(self, url: str, max_redirects: int = 5) -> requests.Response:
+        current_url = str(url)
+        for _ in range(max_redirects + 1):
+            if not self._is_safe_fetch_url(current_url):
+                raise UnsafeFetchUrl(f"Blocked unsafe fetch URL: {current_url}")
+
+            response = requests.get(
+                current_url,
+                headers={"User-Agent": self.user_agent},
+                timeout=15,
+                allow_redirects=False,
+            )
+
+            if not response.is_redirect:
+                response.raise_for_status()
+                return response
+
+            redirect_url = response.headers.get("Location")
+            if not redirect_url:
+                response.raise_for_status()
+                return response
+            current_url = urljoin(response.url, redirect_url)
+
+        raise requests.TooManyRedirects(f"Too many redirects while fetching {url}")
+
     async def _fetch_with_requests(self, url: str) -> requests.Response:
         """Fetches content using requests, suitable for static pages."""
         try:
@@ -118,27 +183,15 @@ class ContentExtractor:
                     )
                     response = await loop.run_in_executor(
                         None,
-                        lambda: requests.get(
-                            direct_url,
-                            headers={"User-Agent": self.user_agent},
-                            timeout=15,
-                            allow_redirects=True,
-                        ),
+                        lambda: self._requests_get_safely(direct_url),
                     )
-                    response.raise_for_status()
                     return response
 
             # Standard fetch for all other URLs
             response = await loop.run_in_executor(
                 None,
-                lambda: requests.get(
-                    url,
-                    headers={"User-Agent": self.user_agent},
-                    timeout=15,
-                    allow_redirects=True,
-                ),
+                lambda: self._requests_get_safely(url),
             )
-            response.raise_for_status()
 
             # Handle potential meta refresh redirects (e.g., from Google Scholar)
             content_type_header = response.headers.get("Content-Type", "").lower()
@@ -155,18 +208,14 @@ class ContentExtractor:
                         )
                         final_response = await loop.run_in_executor(
                             None,
-                            lambda: requests.get(
-                                redirect_url,
-                                headers={"User-Agent": self.user_agent},
-                                timeout=15,
-                                allow_redirects=True,
+                            lambda: self._requests_get_safely(
+                                urljoin(response.url, redirect_url)
                             ),
                         )
-                        final_response.raise_for_status()
                         return final_response
 
             return response
-        except requests.RequestException as e:
+        except (UnsafeFetchUrl, requests.RequestException) as e:
             print(f"Info: requests fetch failed for {url}: {e}.")
             return None
 
@@ -205,6 +254,12 @@ class ContentExtractor:
         print(
             f"Info: RSS summary for '{article.title}' has only {len(article.summary.split()) if article.summary else 0} words (<400). Fetching article content..."
         )
+
+        if not self._is_safe_fetch_url(str(article.link)):
+            print(f"Warning: Blocking unsafe article URL: {article.link}")
+            article.content = sanitize_untrusted_text(article.summary)
+            article.content_type = "text/plain"
+            return [article]
 
         # Apply rate limiting before fetching
         domain = self._get_domain(str(article.link))
@@ -265,6 +320,8 @@ class ContentExtractor:
                     f"Fetching content with Playwright for: {article.title} from {article.link}"
                 )
                 # Add timeout wrapper for the entire page operation
+                if not self._is_safe_fetch_url(str(article.link)):
+                    raise UnsafeFetchUrl(f"Blocked unsafe browser URL: {article.link}")
                 await asyncio.wait_for(
                     page.goto(str(article.link), timeout=30000), timeout=45.0
                 )
@@ -337,6 +394,9 @@ class ContentExtractor:
 
             # Standard filtering for valid, external links
             if not abs_url.startswith("http") or abs_url == base_url:
+                continue
+            if not self._is_safe_fetch_url(abs_url):
+                print(f"  -> Link skipped (unsafe URL): {abs_url}")
                 continue
 
             # If a filter pattern is provided, only follow matching links

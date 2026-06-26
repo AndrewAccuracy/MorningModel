@@ -30,6 +30,29 @@ follow_article_links = false
     assert collection.feeds[0].follow_article_links is False
 
 
+def test_content_extraction_security_settings_can_be_overridden(tmp_path):
+    collection_path = tmp_path / "collection.toml"
+    _write_collection_toml(
+        collection_path,
+        """
+name = "Test Collection"
+
+[content_extraction_settings]
+browser_sandbox = false
+allow_private_networks = true
+
+[[feeds]]
+url = "https://example.com/rss"
+name = "Example Feed"
+""",
+    )
+
+    collection = load_collection(str(collection_path), GlobalConfig())
+
+    assert collection.content_extraction_settings.browser_sandbox is False
+    assert collection.content_extraction_settings.allow_private_networks is True
+
+
 def test_invalid_max_age_raises(tmp_path):
     collection_path = tmp_path / "collection.toml"
     _write_collection_toml(
