@@ -726,6 +726,12 @@ Articles:
                 effectively_summarized_articles,
             )
 
+        target_story_count = min(
+            self.settings.n_most_important_news,
+            len(effectively_summarized_articles),
+        )
+        target_word_count = self.settings.k_words_each_summary * target_story_count
+
         # 2. Build the final prompt for the collection overview
         user_guideline = ""
         if collection_prompt:
@@ -739,11 +745,11 @@ Articles:
         collection_summary_prompt = (
             f"Here are a few digests of previous news and some articles summarized. You should select the most important stories presented in the summarized articles below, avoiding previously covered stories.\n\n"
             f"Consider that today is {datetime.datetime.now().strftime('%Y %B, %-d')}.\n\n"
-            f"1. Identify the {self.settings.n_most_important_news} most important stories."
+            f"1. Identify up to {target_story_count} most important stories."
             f"2. Considering that the same story may be repeated in multitiple articles from different perspectives and with different details, write a cohesive and concise summary of those top stories. "
             f"3. The final summary must be in {self.settings.output_language}. "
             f"4. **Crucially, for every piece of information you include, you MUST cite the source using a Markdown link like this: ([feed name](Link)).** "
-            f"5. The final summary MUST be of {self.settings.k_words_each_summary * min(self.settings.n_most_important_news, len(effectively_summarized_articles))} words. "
+            f"5. The final summary MUST be of {target_word_count} words. "
             f"6. Answer with only the final summary, without introductions nor conclusions. "
             f"7. {'IMPORTANT: Avoid repeating news that was already covered in the previous digests below. Focus on new developments and different stories. If there are no truly new stories, it is better to say so rather than repeat old news.' if previous_digests_context else ''}\n\n"
             f"{user_guideline}\n\n"
@@ -763,13 +769,9 @@ Articles:
             default_template=DEFAULT_COLLECTION_SUMMARY_PROMPT_TEMPLATE,
             template_name="collection_summary_prompt_template",
             today=datetime.datetime.now().strftime("%Y %B, %-d"),
-            n_most_important_news=self.settings.n_most_important_news,
+            n_most_important_news=target_story_count,
             output_language=self.settings.output_language,
-            target_word_count=self.settings.k_words_each_summary
-            * min(
-                self.settings.n_most_important_news,
-                len(effectively_summarized_articles),
-            ),
+            target_word_count=target_word_count,
             repeated_news_instruction=repeated_news_instruction,
             user_guideline=user_guideline,
             context_section=context_section,
@@ -787,7 +789,7 @@ Articles:
             print(
                 "Warning: Collection summary failed. Retrying with a shorter prompt and no previous digest context."
             )
-            retry_prompt = f"""From the article summaries below, select up to {self.settings.n_most_important_news} most important items and return a numbered list.
+            retry_prompt = f"""From the article summaries below, select up to {target_story_count} most important items and return a numbered list.
 
 Requirements:
 1. Keep the original title for each item.
@@ -816,7 +818,7 @@ Article summaries:
             )
             fallback_items = []
             for index, article in enumerate(
-                effectively_summarized_articles[: self.settings.n_most_important_news],
+                effectively_summarized_articles[:target_story_count],
                 start=1,
             ):
                 fallback_items.append(

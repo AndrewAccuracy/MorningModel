@@ -474,6 +474,56 @@ async def test_summarize_articles_collection_uses_custom_prompt_template():
 
 
 @pytest.mark.asyncio
+async def test_collection_summary_target_count_uses_available_articles():
+    settings = LLMSettings(
+        light_model="openai/gpt-3.5-turbo",
+        n_most_important_news=10,
+        k_words_each_summary=50,
+        output_language="Chinese",
+        collection_summary_prompt_template=(
+            "CUSTOM OVERVIEW count={n_most_important_news} words={target_word_count}\n"
+            "{concatenated_summaries}"
+        ),
+        api_key="test-key",
+    )
+    summarizer = LLMSummarizer(settings, GlobalConfig())
+    articles = [
+        Article(
+            id=f"test-{i}",
+            title=f"Article {i}",
+            link=f"https://example.com/{i}",
+            published_date=datetime(2025, 1, i, tzinfo=timezone.utc),
+            content=f"Content {i}",
+            feed_name="Example Feed",
+        )
+        for i in range(1, 8)
+    ]
+
+    async def fake_summarize_text(article):
+        article.summary = f"Summary for {article.title}"
+        return article
+
+    with patch.object(
+        summarizer,
+        "summarize_text",
+        side_effect=fake_summarize_text,
+    ), patch.object(
+        summarizer,
+        "_summarize_text_content",
+        new=AsyncMock(return_value="Collection overview"),
+    ) as summarize_collection:
+        collection_summary, summarized = await summarizer.summarize_articles_collection(
+            articles
+        )
+
+    prompt = summarize_collection.call_args.kwargs["prompt"]
+    assert collection_summary == "Collection overview"
+    assert len(summarized) == 7
+    assert "CUSTOM OVERVIEW count=7 words=350" in prompt
+    assert "count=10" not in prompt
+
+
+@pytest.mark.asyncio
 async def test_filter_article_include_true():
     settings = LLMSettings(
         reasoner_model="openai/gpt-4o",
