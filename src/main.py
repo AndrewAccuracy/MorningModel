@@ -380,7 +380,11 @@ async def main():
                 collection_errors or None,
                 one_line_take,
             )
-            document_generator.send_via_email(subject, email_html, recipient_email, raw_html=True)
+            sent = document_generator.send_via_email(
+                subject, email_html, recipient_email, raw_html=True
+            )
+            if not sent:
+                raise RuntimeError("Email digest delivery failed.")
     else:
         print(
             f"Warning: Unknown output type '{output_type}'. Digest only printed to console."

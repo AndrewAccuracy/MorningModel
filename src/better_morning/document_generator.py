@@ -408,7 +408,9 @@ class DocumentGenerator:
 
         return "\n\n".join(final_document_parts)
 
-    def send_via_email(self, subject: str, body: str, recipient_email: str, raw_html: bool = False):
+    def send_via_email(
+        self, subject: str, body: str, recipient_email: str, raw_html: bool = False
+    ) -> bool:
         if (
             not self.output_settings.smtp_server
             or not self.output_settings.smtp_port
@@ -416,7 +418,7 @@ class DocumentGenerator:
             or not self.output_settings.smtp_password_env
         ):
             print("Error: SMTP settings are incomplete. Cannot send email.")
-            return
+            return False
 
         try:
             smtp_username = get_secret(
@@ -430,7 +432,7 @@ class DocumentGenerator:
             recipient_emails = self._parse_recipient_emails(recipient_email)
             if not recipient_emails:
                 print("Error: No recipient email configured. Cannot send email.")
-                return
+                return False
 
             # Create message with HTML content
             msg = MIMEMultipart()
@@ -465,10 +467,12 @@ class DocumentGenerator:
                 "Email digest sent successfully to "
                 + ", ".join(recipient_emails)
             )
+            return True
         except Exception as e:
             import traceback
             print(f"Error sending email digest: {type(e).__name__}: {e}")
             traceback.print_exc()
+            return False
 
     def create_github_release(
         self, tag_name: str, release_name: str, body: str, repo_slug: str

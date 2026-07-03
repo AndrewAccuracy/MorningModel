@@ -115,7 +115,8 @@ def main() -> None:
 
     document_generator = DocumentGenerator(config.output_settings, config)
     print(f"Sending digest from {digest_path.name}...")
-    document_generator.send_via_email(subject, body, recipient_email)
+    if not document_generator.send_via_email(subject, body, recipient_email):
+        raise SystemExit("Email digest delivery failed.")
 
 
 if __name__ == "__main__":

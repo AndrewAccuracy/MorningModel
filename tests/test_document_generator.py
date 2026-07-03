@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import smtplib
 
 from better_morning.config import GlobalConfig, OutputSettings
 from better_morning.document_generator import DocumentGenerator
@@ -40,6 +41,34 @@ def test_parse_multiple_recipient_emails():
         "three@example.com",
         "four@example.com",
     ]
+
+
+def test_send_via_email_returns_false_on_smtp_error(monkeypatch):
+    monkeypatch.setenv("BETTER_MORNING_SMTP_USERNAME", "sender@example.com")
+    monkeypatch.setenv("BETTER_MORNING_SMTP_PASSWORD", "password")
+
+    global_config = GlobalConfig(
+        output_settings=OutputSettings(
+            output_type="email",
+            smtp_server="smtp.example.com",
+            smtp_port=587,
+        )
+    )
+    generator = DocumentGenerator(global_config.output_settings, global_config)
+
+    def fail_smtp(*args, **kwargs):
+        raise smtplib.SMTPServerDisconnected("timed out")
+
+    monkeypatch.setattr(smtplib, "SMTP", fail_smtp)
+
+    assert (
+        generator.send_via_email(
+            "Subject",
+            "Body",
+            "recipient@example.com",
+        )
+        is False
+    )
 
 
 def test_section_title_distinguishes_ai_research_safety():
