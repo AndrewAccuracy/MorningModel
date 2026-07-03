@@ -10,6 +10,10 @@ collection_prompt = """
 2. 市场走向：美股/全球股市、债券收益率、美元、黄金、原油、大宗商品、信用与波动率；
 3. 影响风险偏好的公司/行业事件：大型科技、金融机构、能源、系统重要企业；
 4. FT、WSJ、CNBC、MarketWatch、Fed、BIS 等来源中能解释“今天市场为什么这样走”的内容。
+这不是泛商业/创投列表。私募融资、单家公司商业模式、初创公司融资和人物观点可以入选，
+但必须能连接到一条更大的市场主线：公开市场定价、指数/行业领导力、信用/流动性、
+能源价格、地缘风险溢价、资本开支周期、风险偏好或资本从一个主题迁移到另一个主题。
+如果正文看起来只是订阅页、注册页或缺少可验证事实，不要选入最终 Top 10。
 
 每条包括：
 1. 原文标题；
@@ -37,8 +41,11 @@ Keep:
 - market direction stories explaining risk-on / risk-off moves
 - major earnings surprises
 - large M&A, capital market events, IPOs, or funding rounds only when they affect market narrative
-- AI-related financial developments only when they affect listed companies, capex, funding markets, or market leadership
+- AI-related financial developments when they affect listed companies, index leadership, capex, funding markets, credit, market leadership, or the direction of capital allocation
 Exclude:
+- isolated private startup funding, VC rounds, or business-model stories that do not reveal a broader market theme, funding cycle, valuation regime, sector leadership shift, or capital-allocation direction
+- thin paywalled/register-page articles that do not provide concrete facts beyond the headline
+- single-investor opinions that are not tied to a broader market move, valuation regime, positioning data, or widely debated market narrative
 - local low-impact stories
 - company PR with no market significance
 - repetitive commentary
@@ -72,6 +79,13 @@ max_articles = 20
 url = "https://feeds.content.dowjones.io/public/rss/mw_topstories"
 name = "MarketWatch Top Stories"
 max_articles = 20
+credibility_tier = 4
+readership_tier = 4
+filter_query = """
+Include MarketWatch stories that explain market direction, rates, inflation, labor, FX, commodities, equity-index leadership, credit, volatility, public-market positioning, or a broader valuation/capital-allocation narrative.
+Private-market, single-company, and investor-opinion stories are allowed when they illuminate a wider market theme, sector leadership shift, crowded trade, funding cycle, or risk appetite change.
+Exclude thin headline-only snippets, personal finance, isolated anecdotes, and company stories with no clear market-index, sector, valuation, or macro relevance.
+"""
 
 [[feeds]]
 url = "https://www.cnbc.com/id/10000664/device/rss/rss.html"
@@ -82,6 +96,13 @@ max_articles = 20
 url = "https://www.cnbc.com/id/100003114/device/rss/rss.html"
 name = "CNBC Top News"
 max_articles = 20
+credibility_tier = 4
+readership_tier = 4
+filter_query = """
+Include CNBC Top News stories with direct relevance to global macro, market pricing, public equities, rates, energy, commodities, credit, volatility, trade, geopolitical risk premiums, or the direction of capital allocation.
+For startups, defense, AI, and private funding, include stories that reveal a broader funding cycle, capex cycle, listed-company leadership shift, risk appetite change, or strategic capital flow.
+Exclude generic business features, isolated private funding rounds with no broader implication, consumer stories, politics without market impact, and thin articles with no concrete data.
+"""
 
 [[feeds]]
 url = "https://www.bis.org/doclist/all_pressrels.rss"

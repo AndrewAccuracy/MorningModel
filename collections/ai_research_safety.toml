@@ -11,6 +11,10 @@ collection_prompt = """
 2. AI safety、alignment、evals、red teaming、jailbreak、防滥用、模型行为监测、可控性和治理相关研究；
 3. JMLR、JAIR 等期刊中的机器学习/人工智能基础研究；
 4. 对产业、安全政策、模型部署或未来研究路线有方向性影响的论文。
+这不是“最新论文流水账”。应用论文、政策文章、社区讨论和方法改进可以入选，
+但必须连接到一条更大的研究/安全主线：评估范式、agent 可靠性、可解释性工具、
+模型行为监测、奖励/对齐方法、数据与训练范式、部署风险、治理框架或未来研究路线。
+如果只是窄任务 SOTA、小数据集实验、单领域应用或没有外溢价值的方法细节，应降权。
 
 每条包括：
 1. 原文标题；
@@ -20,6 +24,7 @@ collection_prompt = """
 
 排序规则：研究影响力、与 AI safety/alignment 的相关性、是否来自高质量会议/期刊/预印本、方法或结论是否有方向性、是否值得继续跟踪。
 “入选优势”必须说明这条相对于普通研究条目的优势：研究新颖性、AI safety/alignment 相关性、方法影响、评测价值或未来研究方向。
+入选优势必须说清楚它连接到哪条研究或安全主线，而不只是说“性能提升”或“提出新方法”。
 """
 
 [llm_settings]
@@ -35,11 +40,13 @@ Keep:
 - training, inference, data, benchmark, and evaluation work with broad research impact
 - papers from strong venues or journals, or preprints likely to matter for top-conference research discussions
 - governance or risk research grounded in technical AI systems
+- applied-domain papers only when they expose a reusable evaluation method, safety/control pattern, agent reliability issue, deployment-risk framework, or foundation-model research direction
 Exclude:
 - generic tutorials
 - low-signal opinion posts
 - product announcements with no research contribution
-- narrowly applied ML papers with little connection to AI, safety, or foundation models
+- narrowly applied ML papers with little connection to AI, safety, foundation models, evaluation methodology, deployment risk, or reusable research tools
+- incremental benchmark/SOTA papers that do not change a broader research or safety conversation
 - old conference proceedings index pages without a specific research contribution
 """
 
@@ -80,6 +87,7 @@ max_articles = 10
 follow_article_links = false
 filter_query = """
 Include only Medium posts that make a substantive AI safety, alignment, evals, interpretability, robustness, red-teaming, governance, or deployment-risk argument.
+Posts are strongest when they connect a concrete example to a broader safety/governance/evaluation pattern.
 Exclude generic AI ethics commentary, vague risk essays, tutorials, and posts without concrete technical or policy substance.
 """
 
@@ -90,7 +98,8 @@ max_articles = 10
 follow_article_links = false
 filter_query = """
 Include only Medium posts that discuss meaningful AI/ML research with relevance to foundation models, evaluation, agents, safety, interpretability, robustness, or deployment.
-Exclude basic ML tutorials, narrow implementation walkthroughs, and posts with no research contribution.
+Applied or implementation posts are allowed when they reveal a reusable research method, evaluation pattern, deployment-risk lesson, or foundation-model implication.
+Exclude basic ML tutorials, narrow implementation walkthroughs, and posts with no broader research contribution.
 """
 
 [[feeds]]
@@ -100,7 +109,8 @@ max_articles = 10
 follow_article_links = false
 filter_query = """
 Include only LLM posts with research or safety value: evaluation, reasoning, agents, interpretability, robustness, jailbreaks, red teaming, monitoring, data, training, or inference.
-Exclude prompt lists, beginner tutorials, product marketing, and generic commentary.
+Product or practitioner posts are allowed when they reveal a broader LLM evaluation, reliability, safety, training, inference, or deployment pattern.
+Exclude prompt lists, beginner tutorials, product marketing, and generic commentary without research or safety signal.
 """
 
 [[feeds]]
@@ -122,5 +132,6 @@ max_articles = 8
 follow_article_links = false
 filter_query = """
 Include only posts with AI research, AI safety, policy, model capability, benchmark, infrastructure, or deployment relevance.
+Policy and commentary posts are allowed when they clarify a broader governance, evaluation, deployment-risk, or research-direction debate.
 Exclude general tech commentary without a clear AI research or safety connection.
 """

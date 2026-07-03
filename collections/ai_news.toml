@@ -11,6 +11,10 @@ collection_prompt = """
 优先选择国际影响力强、信息密度高、方向性强的 AI 新闻。
 排序规则：全球影响力、方向性、信息密度、与产业格局的关系、是否值得今天继续追踪。
 “入选优势”必须说明这条相对于普通 AI 新闻的优势：全球影响力、产业方向、技术/产品变化、竞争格局或后续可追踪性。
+这不是泛科技新闻列表。融资、事故、诉讼、人物观点、商业模式和单家公司新闻可以入选，
+但必须能连接到一条更大的 AI 主线：基础模型能力、agent 落地、算力/数据基础设施、
+开源生态、AI 资本开支周期、平台竞争、监管/责任框架、安全风险或企业采用曲线。
+如果只是孤立事件，不能说明 AI 行业走向，就不要列入 AI Top 10。
 """
 
 [llm_settings]
@@ -29,6 +33,8 @@ Keep:
 - AI safety and security
 - major funding, acquisitions, strategic partnerships
 Exclude:
+- isolated autonomous-vehicle crashes, criminal cases, lawsuits, funding rounds, or company anecdotes that do not reveal a broader AI regulation, deployment, platform, infrastructure, capital-allocation, or safety trend
+- EV/transportation stories where AI is incidental rather than the core industry signal
 - tutorials
 - small feature launches
 - repetitive commentary
@@ -77,6 +83,14 @@ url = "https://www.theverge.com/rss/index.xml"
 name = "The Verge"
 max_articles = 15
 follow_article_links = false
+credibility_tier = 4
+readership_tier = 3
+filter_query = """
+Include only Verge stories where AI is the main story and the item matters for an international AI observer.
+Keep frontier models, AI agents, platform strategy, AI regulation, AI safety/security, model deployment, and major AI infrastructure or product shifts.
+Autonomous-driving, legal-liability, consumer, and platform stories are allowed only when they reveal a broader AI regulation, deployment, responsibility, safety, or industry-adoption trend.
+Exclude isolated crashes, criminal cases, consumer gadget items, and app updates that do not change the AI industry narrative.
+"""
 
 [[feeds]]
 url = "https://medium.com/feed/tag/artificial-intelligence"
@@ -87,9 +101,9 @@ filter_query = """
 Include only high-signal Medium articles about AI that matter for an international AI observer.
 Keep:
 - frontier models, agents, AI infrastructure, open-source ecosystem shifts, AI policy, AI security, and major platform changes
-- essays with original analysis, concrete evidence, useful numbers, or clear industry implications
+- essays with original analysis, concrete evidence, useful numbers, or clear implications for AI adoption, competition, capital allocation, safety, policy, or infrastructure
 Exclude:
-- beginner tutorials, prompt lists, generic productivity tips, generic ChatGPT use cases, thin opinion posts, and promotional content
+- beginner tutorials, prompt lists, generic productivity tips, generic ChatGPT use cases, thin opinion posts without a broader AI trend, and promotional content
 """
 
 [[feeds]]
@@ -131,5 +145,6 @@ max_articles = 8
 follow_article_links = false
 filter_query = """
 Include only posts with broader AI product, labor, education, policy, or adoption implications.
-Exclude narrow personal experiments unless they reveal a meaningful AI capability, adoption pattern, or risk.
+Personal experiments or essays are allowed when they reveal a meaningful AI capability, adoption pattern, labor/education shift, product strategy, or risk.
+Exclude narrow anecdotes that do not connect to a broader AI trend.
 """
