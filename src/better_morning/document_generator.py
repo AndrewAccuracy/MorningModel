@@ -10,9 +10,12 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlencode
+from bs4 import BeautifulSoup
 
 from .config import OutputSettings, GlobalConfig, get_secret
 from .rss_fetcher import Article
+from .article_utils import extract_domain, extract_topic_keywords
 
 
 class DocumentGenerator:
@@ -20,6 +23,26 @@ class DocumentGenerator:
         self.output_settings = output_settings
         self.global_config = global_config
         self.digest_history_file = "history/digest_history.json"
+
+    def feedback_instructions_markdown(self) -> str:
+        return (
+            "## Feedback Shortcuts\n\n"
+            "如果你更喜欢邮件回复，建议统一用下面这个开头话术，这样系统更容易自动识别，而且更省 token：\n\n"
+            "```text\n"
+            "主题建议：Re: MorningModel Feedback\n\n"
+            "晨报反馈：栏目=AI Top 10；来源 techcrunch.com 降权，理由：重复多 | 主题 agents 优先，理由：值得长期跟踪\n"
+            "```\n\n"
+            "如果你想手动录入，也可以直接运行这些命令：\n\n"
+            "```bash\n"
+            "python scripts/record_feedback.py --collection \"AI Top 10\" --kind source --target techcrunch.com --action deprioritize --reason \"重复多\"\n"
+            "python scripts/record_feedback.py --collection \"AI Top 10\" --kind source --target openai.com --action trust --reason \"一手来源\"\n"
+            "python scripts/record_feedback.py --collection \"AI Top 10\" --kind topic --target agents --action prefer --reason \"值得长期跟踪\"\n"
+            "python scripts/record_feedback.py --collection \"Finance Top 10\" --kind topic --target ecb --action deprioritize --reason \"同题过密\"\n"
+            "```\n\n"
+            "Action options:\n"
+            "- Source: `trust`, `watch`, `deprioritize`, `block`\n"
+            "- Topic: `prefer`, `watch`, `deprioritize`, `block`\n"
+        )
         
     def _ensure_history_dir(self):
         """Ensure the history directory exists."""
@@ -157,6 +180,100 @@ class DocumentGenerator:
                 return "Today focus on global macro and risk-appetite shifts; track central bank expectations, rate paths, and major asset pricing."
             return "Today focus on the most internationally significant new developments across all sections and follow their downstream impact."
 
+    def _feedback_recipient(self) -> str:
+        return (
+            os.getenv("BETTER_MORNING_FEEDBACK_EMAIL")
+            or os.getenv("BETTER_MORNING_FEEDBACK_IMAP_USERNAME")
+            or ""
+        ).strip()
+
+    def _feedback_mailto(self, body: str) -> str:
+        recipient = self._feedback_recipient()
+        query = urlencode(
+            {
+                "subject": "Re: MorningModel Feedback",
+                "body": body,
+            }
+        )
+        return f"mailto:{recipient}?{query}"
+
+    def _article_feedback_actions_html(
+        self,
+        collection_name: str,
+        article: Article,
+    ) -> str:
+        source = extract_domain(str(article.source_url or article.link))
+        topics = extract_topic_keywords(article.title, article.summary, limit=2)
+        topic = topics[0] if topics else ""
+        title = html_module.escape(article.title)
+        source_label = html_module.escape(source or "source")
+
+        reason_title = article.title[:90]
+        if topic:
+            more_body = (
+                f"晨报反馈：栏目={collection_name}；主题 {topic} 优先，"
+                f"理由：多看类似：{reason_title}"
+            )
+            less_body = (
+                f"晨报反馈：栏目={collection_name}；主题 {topic} 减少，"
+                f"理由：少看类似：{reason_title}"
+            )
+        else:
+            more_body = (
+                f"晨报反馈：栏目={collection_name}；来源 {source} 观察，"
+                f"理由：多看类似但未抽到主题：{reason_title}"
+            )
+            less_body = (
+                f"晨报反馈：栏目={collection_name}；来源 {source} 降权，"
+                f"理由：少看类似但未抽到主题：{reason_title}"
+            )
+        source_body = (
+            f"晨报反馈：栏目={collection_name}；来源 {source} 降权，"
+            f"理由：少看这个来源：{reason_title}"
+        )
+
+        more_href = html_module.escape(self._feedback_mailto(more_body), quote=True)
+        less_href = html_module.escape(self._feedback_mailto(less_body), quote=True)
+        source_href = html_module.escape(self._feedback_mailto(source_body), quote=True)
+
+        return f"""
+        <details class="article-feedback">
+          <summary title="调整下次推荐"></summary>
+          <span class="article-feedback-menu">
+            <span class="article-feedback-source">{source_label}</span>
+            <a href="{more_href}">多一点</a>
+            <a href="{less_href}">少一点</a>
+            <a href="{source_href}">少来源</a>
+          </span>
+        </details>"""
+
+    def _summary_with_feedback_actions_html(
+        self,
+        content_html: str,
+        collection_name: str,
+        articles: List[Article],
+    ) -> str:
+        valid_articles = [
+            article
+            for article in articles
+            if article.title and article.summary and not article.summary.startswith("[Error:")
+        ]
+        if not valid_articles:
+            return content_html
+
+        soup = BeautifulSoup(content_html, "html.parser")
+        list_items = soup.find_all("li")
+        for list_item, article in zip(list_items, valid_articles):
+            title_node = list_item.find("strong")
+            if title_node is None:
+                continue
+            feedback_fragment = BeautifulSoup(
+                self._article_feedback_actions_html(collection_name, article),
+                "html.parser",
+            )
+            title_node.insert_after(feedback_fragment)
+        return str(soup)
+
     def generate_email_html(
         self,
         collection_summaries: Dict[str, str],
@@ -164,6 +281,7 @@ class DocumentGenerator:
         fetch_reports: Optional[Dict[str, dict]] = None,
         collection_errors: Optional[Dict[str, str]] = None,
         one_line_take: Optional[str] = None,
+        articles_by_collection: Optional[Dict[str, List[Article]]] = None,
     ) -> str:
         """Generates a newspaper-style HTML email with only summaries; feed report is collapsed."""
         _EMPTY_SUMMARIES = {
@@ -191,6 +309,11 @@ class DocumentGenerator:
             section_title = html_module.escape(self._section_title(collection_name))
             content_html = markdown2.markdown(
                 summary, extras=["fenced-code-blocks", "tables"]
+            )
+            content_html = self._summary_with_feedback_actions_html(
+                content_html,
+                collection_name,
+                (articles_by_collection or {}).get(collection_name, []),
             )
             sections_html += f"""
     <div class="section">
@@ -249,11 +372,23 @@ class DocumentGenerator:
   .section-content li{{margin-bottom:14px;}}
   .section-content p{{margin:0 0 10px;}}
   .section-content strong{{font-weight:bold;}}
+  .article-feedback{{display:inline-block;position:relative;margin-left:4px;vertical-align:baseline;font-family:'Helvetica Neue',Arial,sans-serif;}}
+  .article-feedback summary{{display:inline-block;width:12px;height:12px;padding:0;border:0;background:transparent;color:#aaa;font-size:0;line-height:1;cursor:pointer;list-style:none;vertical-align:baseline;}}
+  .article-feedback summary::-webkit-details-marker{{display:none;}}
+  .article-feedback summary::marker{{content:"";}}
+  .article-feedback summary::before{{content:"▾";font-size:10px;line-height:12px;}}
+  .article-feedback[open] summary{{color:#555;}}
+  .article-feedback-menu{{display:none;position:absolute;z-index:5;top:16px;left:0;min-width:176px;padding:8px 9px;border:1px solid rgba(201,190,174,.58);border-radius:8px;background:rgba(250,248,244,.68);box-shadow:0 8px 28px rgba(0,0,0,.10);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}}
+  .article-feedback[open] .article-feedback-menu{{display:block;}}
+  .article-feedback-source{{display:block;margin-bottom:5px;color:#aaa;font-size:10px;line-height:1.2;}}
+  .article-feedback-menu a{{display:inline-block;margin:0 8px 3px 0;padding:2px 0;text-decoration:none;color:#555;background:transparent;font:11px/1.2 'Helvetica Neue',Arial,sans-serif;}}
+  .article-feedback-menu a:hover{{text-decoration:underline;}}
   .footer-area{{padding:0 32px;}}
   details summary{{font:11px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#bbb;cursor:pointer;padding:14px 0;border-top:1px solid #eee;list-style:none;}}
   details summary::-webkit-details-marker{{display:none;}}
   details summary::before{{content:"▸ ";}}
   details[open] summary::before{{content:"▾ ";}}
+  .feedback-howto pre{{white-space:pre-wrap;word-break:break-word;background:#faf8f4;border:1px solid #eee;padding:8px 10px;font:12px/1.6 'Courier New',monospace;}}
   .diag{{font:12px/1.65 'Helvetica Neue',Arial,sans-serif;color:#888;padding:6px 0 16px;}}
   .diag table{{width:100%;border-collapse:collapse;}}
   .diag td{{padding:3px 12px 3px 0;vertical-align:top;}}
@@ -279,6 +414,17 @@ class DocumentGenerator:
     <details>
       <summary>Feed 抓取报告</summary>
       <div class="diag">{diag_html}</div>
+    </details>
+    <details>
+      <summary>人工反馈方式</summary>
+      <div class="diag feedback-howto">
+        <p>建议邮件主题以 <code>Re: MorningModel Feedback</code> 开头。</p>
+        <p>推荐邮件回复统一以 <code>晨报反馈：</code> 开头，例如：</p>
+        <pre>晨报反馈：栏目=AI Top 10；来源 techcrunch.com 降权，理由：重复多 | 主题 agents 优先，理由：值得长期跟踪</pre>
+        <p>如果你想手动录入，也可以运行命令：</p>
+        <pre>python scripts/record_feedback.py --collection "AI Top 10" --kind source --target techcrunch.com --action deprioritize --reason "重复多"</pre>
+        <pre>python scripts/record_feedback.py --collection "AI Top 10" --kind topic --target agents --action prefer --reason "值得长期跟踪"</pre>
+      </div>
     </details>
     {errors_html}
   </div>
@@ -404,6 +550,7 @@ class DocumentGenerator:
             final_document_parts.extend(["---", skipped_sources_section])
         if search_memory_section:
             final_document_parts.extend(["---", search_memory_section])
+        final_document_parts.extend(["---", self.feedback_instructions_markdown()])
         final_document_parts.extend(["---"] + detailed_sections)
 
         return "\n\n".join(final_document_parts)

@@ -61,10 +61,70 @@ max_articles = 10
 follow_article_links = false
 
 [[feeds]]
+url = "https://research.google/blog/rss/"
+name = "Google Research Blog"
+max_articles = 10
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include Google Research posts only when they matter to an international AI observer: foundation models, agents, multimodal systems, AI infrastructure, evaluation, deployment, safety/security, robotics, healthcare AI, or major open research artifacts.
+Exclude narrow product updates, small feature announcements, recruiting/community posts, and research with no broader model, platform, deployment, or industry implication.
+"""
+
+[[feeds]]
 url = "https://huggingface.co/blog/feed.xml"
 name = "Hugging Face Blog"
 max_articles = 10
 follow_article_links = false
+
+[[feeds]]
+url = "https://www.microsoft.com/en-us/microsoft-cloud/blog/feed/"
+name = "Microsoft Cloud Blog"
+max_articles = 8
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include Microsoft Cloud posts only when AI is central and the story affects enterprise adoption, cloud/platform competition, AI infrastructure, agents, security, governance, productivity, or large-scale customer deployment.
+Exclude generic cloud, nonprofit, customer-story, and product-marketing posts unless they contain concrete AI adoption, infrastructure, governance, or market implications.
+"""
+
+[[feeds]]
+url = "https://blogs.nvidia.com/feed/"
+name = "NVIDIA Blog"
+max_articles = 10
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include NVIDIA posts about AI chips, inference/training infrastructure, CUDA/software platforms, robotics, data centers, sovereign AI, AI safety/security, scientific AI, and major ecosystem partnerships.
+Exclude gaming, consumer GPU, events, awards, and promotional posts without AI infrastructure, platform, market, or deployment significance.
+"""
+
+[[feeds]]
+url = "https://aws.amazon.com/blogs/machine-learning/feed/"
+name = "AWS Machine Learning Blog"
+max_articles = 10
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include AWS ML posts with relevance to foundation models, Bedrock/SageMaker, agents, enterprise AI deployment, inference/training infrastructure, AI security/governance, cost/performance, and large-scale production patterns.
+Exclude narrow how-to guides, service configuration tutorials, partner demos, and implementation walkthroughs without broader enterprise AI or cloud-platform signal.
+"""
+
+[[feeds]]
+url = "https://www.technologyreview.com/topic/artificial-intelligence/feed/"
+name = "MIT Technology Review AI"
+max_articles = 10
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 5
+filter_query = """
+Include MIT Technology Review AI stories with global AI industry, policy, research, safety, capability, infrastructure, labor, or adoption significance.
+Exclude broad tech stories where AI is incidental, consumer-only pieces, and commentary without concrete evidence or implications for AI strategy, regulation, safety, competition, or deployment.
+"""
 
 [[feeds]]
 url = "https://techcrunch.com/category/artificial-intelligence/feed/"

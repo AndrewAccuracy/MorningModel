@@ -31,6 +31,11 @@ COMMON_TITLE_NOISE = {
     "podcast",
     "live",
     "update",
+    "article",
+    "summary",
+    "content",
+    "individual",
+    "feed",
     "today",
     "says",
     "said",
@@ -112,6 +117,37 @@ HIGH_IMPACT_TERMS = {
     "treasury",
 }
 
+KNOWN_STORY_ENTITIES = {
+    "anthropic",
+    "openai",
+    "google",
+    "deepmind",
+    "microsoft",
+    "meta",
+    "amazon",
+    "apple",
+    "nvidia",
+    "black forest labs",
+    "xai",
+    "moonshot",
+    "alibaba",
+    "tencent",
+    "mistral",
+    "hugging face",
+    "federal reserve",
+    "fed",
+    "ecb",
+    "treasury",
+    "bis",
+}
+
+MODEL_FAMILY_PATTERN = re.compile(
+    r"\b(?:claude|opus|sonnet|haiku|fable|mythos|gpt|gemini|flash|pro|"
+    r"flux|kimi|qwen|llama|mistral|deepseek|grok|sora|codex)"
+    r"[\s.-]*(?:\d+(?:\.\d+)?[a-z]?|[a-z]\d+)?\b",
+    re.IGNORECASE,
+)
+
 
 def extract_domain(url: str) -> str:
     try:
@@ -153,6 +189,37 @@ def extract_topic_keywords(title: str, summary: str | None = None, limit: int = 
         if len(ordered_unique) >= limit:
             break
     return ordered_unique
+
+
+def extract_story_fingerprint(title: str, summary: str | None = None) -> str:
+    """Return a coarse story key for cross-source duplicates with different titles."""
+    combined = normalize_title(" ".join(part for part in [title or "", summary or ""] if part))
+    if not combined:
+        return ""
+
+    entities = [
+        entity
+        for entity in sorted(KNOWN_STORY_ENTITIES, key=len, reverse=True)
+        if entity in combined
+    ]
+    model_terms = [
+        normalize_title(match.group(0))
+        for match in MODEL_FAMILY_PATTERN.finditer(combined)
+    ]
+    model_terms = [term for term in dict.fromkeys(model_terms) if term]
+    versioned_model_terms = [term for term in model_terms if any(char.isdigit() for char in term)]
+    if versioned_model_terms:
+        model_terms = versioned_model_terms
+
+    if entities and model_terms:
+        primary_entity = entities[0]
+        primary_model = model_terms[0]
+        return f"{primary_entity}:{primary_model}"
+
+    if len(entities) >= 2:
+        return ":".join(entities[:2])
+
+    return ""
 
 
 def title_signature(title: str) -> str:
@@ -202,13 +269,24 @@ def infer_source_scores(
             "bis.org",
             "openai.com",
             "anthropic.com",
+            "aws.amazon.com",
+            "azure.microsoft.com",
+            "microsoft.com",
+            "blogs.nvidia.com",
+            "developer.nvidia.com",
             "googleblog.com",
             "deepmind.google",
+            "research.google",
             "huggingface.co",
             "arxiv.org",
             "export.arxiv.org",
             "jmlr.org",
             "jair.org",
+            "metr.org",
+            "ecb.europa.eu",
+            "bankofengland.co.uk",
+            "eia.gov",
+            "imf.org",
         )
     ):
         return 5, 4
@@ -221,9 +299,11 @@ def infer_source_scores(
             "dowjones.io",
             "cnbc.com",
             "marketwatch.com",
+            "bloomberg.com",
             "techcrunch.com",
             "theverge.com",
             "infoq.com",
+            "technologyreview.com",
         )
     ):
         return 5, 5
@@ -242,6 +322,8 @@ def infer_source_scores(
             "theovershoot.co",
             "netinterest.co",
             "noahpinion.blog",
+            "mckinsey.com",
+            "morganstanley.com",
         )
     ):
         return 4, 3

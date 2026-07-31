@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+from html import unescape
 import smtplib
+from urllib.parse import parse_qs, urlparse
 
 from better_morning.config import GlobalConfig, OutputSettings
 from better_morning.document_generator import DocumentGenerator
+from better_morning.rss_fetcher import Article
 
 
 def test_save_and_load_digest_history(tmp_path, monkeypatch):
@@ -80,3 +83,39 @@ def test_section_title_distinguishes_ai_research_safety():
         == "AI Research & Safety Top 10"
     )
     assert generator._section_title("AI Top 10") == "AI Top 10"
+
+
+def test_email_html_includes_mailto_feedback_actions(monkeypatch):
+    monkeypatch.setenv("BETTER_MORNING_FEEDBACK_EMAIL", "feedback@example.com")
+    global_config = GlobalConfig(output_settings=OutputSettings())
+    generator = DocumentGenerator(global_config.output_settings, global_config)
+    article = Article(
+        id="a1",
+        title="OpenAI launches new agent platform",
+        link="https://techcrunch.com/openai-agent",
+        source_url="https://techcrunch.com/category/artificial-intelligence/feed/",
+        feed_name="TechCrunch AI",
+        published_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        summary="OpenAI launches agents for enterprise workflows.",
+    )
+
+    html = generator.generate_email_html(
+        {"AI Top 10": "1. **OpenAI launches new agent platform** ([Source](https://techcrunch.com/openai-agent))\nSummary"},
+        datetime(2025, 1, 1, tzinfo=timezone.utc),
+        articles_by_collection={"AI Top 10": [article]},
+    )
+
+    assert "article-feedback" in html
+    assert "多一点" in html
+    assert "少一点" in html
+    assert "少来源" in html
+
+    href_start = html.index("mailto:feedback@example.com?")
+    href = unescape(html[href_start:].split('"', 1)[0])
+    parsed = urlparse(href)
+    params = parse_qs(parsed.query)
+    body = params["body"][0]
+
+    assert params["subject"] == ["Re: MorningModel Feedback"]
+    assert body.startswith("晨报反馈：栏目=AI Top 10")
+    assert "优先" in body

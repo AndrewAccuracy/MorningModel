@@ -9,7 +9,8 @@ collection_prompt = """
 1. 全球经济与政策主线：央行、利率、通胀、就业、增长、财政、贸易、地缘风险；
 2. 市场走向：美股/全球股市、债券收益率、美元、黄金、原油、大宗商品、信用与波动率；
 3. 影响风险偏好的公司/行业事件：大型科技、金融机构、能源、系统重要企业；
-4. FT、WSJ、CNBC、MarketWatch、Fed、BIS 等来源中能解释“今天市场为什么这样走”的内容。
+4. FT、WSJ、CNBC、MarketWatch、Fed、ECB、BoE、BIS、McKinsey、Morgan Stanley 等
+   来源中能解释“今天市场为什么这样走”的内容。
 这不是泛商业/创投列表。私募融资、单家公司商业模式、初创公司融资和人物观点可以入选，
 但必须能连接到一条更大的市场主线：公开市场定价、指数/行业领导力、信用/流动性、
 能源价格、地缘风险溢价、资本开支周期、风险偏好或资本从一个主题迁移到另一个主题。
@@ -113,6 +114,67 @@ max_articles = 10
 url = "https://www.federalreserve.gov/feeds/press_all.xml"
 name = "Federal Reserve Press Releases"
 max_articles = 10
+
+[[feeds]]
+url = "https://www.eia.gov/rss/todayinenergy.xml"
+name = "EIA Today in Energy"
+max_articles = 10
+credibility_tier = 5
+readership_tier = 3
+filter_query = """
+Include EIA energy stories when they affect oil, natural gas, electricity, power demand, fuel prices, inventories, energy infrastructure, LNG, renewables, data-center electricity demand, inflation, trade, or geopolitical energy risk.
+Exclude narrow local infrastructure updates, routine data explanations without market implication, and consumer-only energy efficiency posts.
+"""
+
+[[feeds]]
+url = "https://www.ecb.europa.eu/rss/press.html"
+name = "European Central Bank"
+max_articles = 12
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include ECB items with direct relevance to euro-area monetary policy, rates, inflation, bank lending, credit conditions, collateral, liquidity, financial stability, market infrastructure, or the euro area's macro outlook.
+Keep monetary policy decisions, press conferences, speeches with policy signal, surveys of professional forecasters, bank lending surveys, credit/funding-market surveys, and financial-stability or collateral-framework changes.
+Exclude appointments, public surveys, design/communications items, administrative decisions, and operational notices without market or macro significance.
+"""
+
+[[feeds]]
+url = "https://www.bankofengland.co.uk/rss/news"
+name = "Bank of England"
+max_articles = 12
+credibility_tier = 5
+readership_tier = 4
+filter_query = """
+Include Bank of England, PRA, and FPC items that affect UK/global rates, inflation, monetary policy, gilt markets, financial stability, bank capital, systemic risk, payments infrastructure, stablecoins, wholesale markets, or cyber/AI risk in finance.
+Keep MPC decisions/minutes, FPC records, market notices, regulatory changes with bank/market impact, and speeches or letters with policy signal.
+Exclude appointments, banknote design, routine statistical notices, narrow enforcement actions, and administrative communications without market or macro relevance.
+"""
+
+[[feeds]]
+url = "https://www.mckinsey.com/insights/rss"
+name = "McKinsey Insights"
+max_articles = 12
+follow_article_links = false
+credibility_tier = 5
+readership_tier = 3
+filter_query = """
+Include McKinsey insights only when they help explain global macro, productivity, AI capital expenditure, enterprise AI adoption, financial services, banking, insurance, energy transition, supply chains, geopolitics, trade, consumer demand, labor markets, or sector-level capital allocation.
+Keep research with concrete data, executive surveys, sector outlooks, productivity analysis, AI/economics links, financial-institution strategy, and energy or supply-chain themes with market implications.
+Exclude generic leadership, HR, marketing, operations, organization design, sustainability messaging without financial impact, and narrow management advice that does not connect to macro, markets, credit, capital allocation, or AI capex.
+"""
+
+[[feeds]]
+url = "https://www.morganstanley.com/press-releases.msfeed.xml"
+name = "Morgan Stanley Press Releases"
+max_articles = 8
+follow_article_links = false
+credibility_tier = 4
+readership_tier = 3
+filter_query = """
+Include Morgan Stanley press releases only when they have clear public-market, financial-sector, capital-markets, asset-allocation, investor-positioning, bank-earnings, dividend/buyback, credit, liquidity, private-market access, or macro/sector survey implications.
+Keep quarterly earnings, capital return announcements, market/investor surveys, wealth/asset-management flows, significant financing or debt transactions, and research-backed views on liquidity, governance, fundraising, or portfolio complexity.
+Exclude philanthropy, awards, hiring, appointments, nonprofit programs, routine product launches, small private investments, local office news, and company PR without broader market or financial-system significance.
+"""
 
 [[feeds]]
 url = "https://medium.com/feed/tag/macroeconomics"

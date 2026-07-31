@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl
 import feedparser
+import requests
 from datetime import datetime, timezone, timedelta
 import email.utils
 import json
@@ -255,6 +256,12 @@ class RSSFetcher:
 
                 # Restore original timeout
                 socket.setdefaulttimeout(original_timeout)
+                if (
+                    not feed.entries
+                    and getattr(feed, "bozo", False)
+                    and self._feed_error_looks_retryable(feed)
+                ):
+                    feed = self._fetch_feed_via_requests(feed_url, timeout)
 
                 # Check if feed was successfully parsed
                 status = getattr(feed, "status", None)
@@ -287,6 +294,44 @@ class RSSFetcher:
                     return None
 
         return None
+
+    def _feed_error_looks_retryable(self, feed: feedparser.FeedParserDict) -> bool:
+        error_text = str(getattr(feed, "bozo_exception", "")).lower()
+        return any(
+            marker in error_text
+            for marker in (
+                "unexpected_eof",
+                "eof occurred",
+                "ssl",
+                "urlopen error",
+                "timed out",
+                "connection reset",
+                "remote end closed",
+            )
+        )
+
+    def _fetch_feed_via_requests(
+        self,
+        feed_url: str,
+        timeout: int,
+    ) -> feedparser.FeedParserDict:
+        print(f"Retrying feed via requests fallback: {feed_url}")
+        response = requests.get(
+            feed_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0 Safari/537.36"
+                ),
+                "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+            },
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        parsed = feedparser.parse(response.content)
+        parsed["status"] = response.status_code
+        return parsed
 
     def _record_fetch_result(
         self,

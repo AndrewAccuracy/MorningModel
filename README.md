@@ -8,7 +8,7 @@
   </a>
 </p>
 
-> **RSS is the firehose. Your inbox is the finish line.** MorningModel pulls high-signal RSS sources across AI industry, AI research & safety, and global finance — filters with LLM scoring, deduplicates across run history, and ships a ranked **Chinese morning email** every day. **41 curated feeds** across **3 collections** · **8 email providers** (Gmail · Outlook · QQ · iCloud · and more) · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · `last-digest` deduplication · prompt-injection guardrails · local `./run.sh` or **GitHub Actions at 07:00 Beijing time**.
+> **RSS is the firehose. Your inbox is the finish line.** MorningModel pulls high-signal RSS sources across AI industry, AI research & safety, and global finance — filters with LLM scoring, deduplicates across run history, and ships a ranked **Chinese morning email** every day. **41 curated feeds** across **3 collections** · **8 email providers** (Gmail · Outlook · QQ · iCloud · and more) · **3 LLM providers** (OpenAI · DeepSeek · Gemini via LiteLLM) · `last-digest` deduplication · prompt-injection guardrails · local `./run.sh` on mac mini by default, with **optional manual GitHub Actions fallback**.
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square" /></a>
@@ -129,8 +129,8 @@ We stand on one open-source shoulder:
 | **Chinese output** | Summaries, section intros, and **入选优势** lines are Chinese by default (`output_language = "Chinese"` in `config.toml`). |
 | **Email delivery** | iCloud SMTP (`smtp.mail.me.com:587`) — HTML email rendered from markdown via `markdown2`. |
 | **Local fallback** | Missing SMTP credentials → `daily-digest-YYYY-MM-DD.md` written locally. |
-| **Automation** | `./run.sh` locally · `./run.sh --scheduled` with interval guard · GitHub Actions cron `0 23 * * *` UTC (07:00 Beijing). |
-| **Security** | Untrusted RSS/web/PDF content wrapped, normalized, and scanned before every LLM call — see [`src/better_morning/prompt_security.py`](src/better_morning/prompt_security.py). |
+| **Automation** | mac mini local `./run.sh` · `./run.sh --scheduled` with interval guard · optional manual GitHub Actions fallback via `workflow_dispatch`. |
+| **Security** | Untrusted RSS/web/PDF content wrapped, normalized, and scanned before every LLM call; browser sandboxing and private-network fetch blocking are enabled by default. |
 | **License** | GPL-3.0 (inherited from upstream) |
 
 ---
@@ -274,13 +274,23 @@ Every surviving item gets a one-line **入选优势** — why it beat the other 
 
 RSS bodies, scraped HTML, PDFs, and previous digest text are wrapped in `BEGIN_UNTRUSTED_CONTENT` markers, normalized (control chars, zero-width glyphs), and scanned for injection patterns before any model call. A system prompt tells the model to treat article text as data only. This reduces risk; curated sources and secret hygiene still matter.
 
+The fetcher also keeps Chromium's sandbox enabled by default and blocks `localhost`, private IP ranges, and local-network hostnames unless you explicitly opt in:
+
+```toml
+[content_extraction_settings]
+browser_sandbox = true
+allow_private_networks = false
+```
+
+Only set `browser_sandbox = false` when the whole run is already inside a stronger container/runtime sandbox.
+
 ### 6 · Same pipeline, three schedulers.
 
 | Mode | Command | When it runs |
 |---|---|---|
 | **Manual** | `./run.sh` | Whenever you invoke it |
 | **Local interval** | `./run.sh --scheduled` | Only when `last_success_at + BETTER_MORNING_RUN_INTERVAL_DAYS` (default **5**) has elapsed |
-| **GitHub Actions** | `workflow_dispatch` or cron `0 23 * * *` UTC | Daily cloud run with `history/` cache restore/save |
+| **GitHub Actions** | `workflow_dispatch` only | Optional manual cloud fallback with `history/` cache restore/save |
 
 `./run.sh --scheduled` is a lightweight guard — macOS LaunchAgents can call it every 12h (`StartInterval = 43200`); the heavy digest still fires only when the interval is due. Prefer `~/Code/better-morning` over `Desktop`/`Documents` for LaunchAgent paths (TCC privacy).
 
@@ -289,7 +299,7 @@ RSS bodies, scraped HTML, PDFs, and previous digest text are wrapped in `BEGIN_U
 ## Architecture
 
 ```
-┌─────────────────────── run.sh / GitHub Actions ───────────────────────┐
+┌──────────────────── run.sh (default) / GitHub Actions (manual) ────────────────────┐
 │  load .env.local secrets · uv sync · playwright browsers (CI only)   │
 └───────────────────────────────┬───────────────────────────────────────┘
                                 │
@@ -369,8 +379,8 @@ Each normal run also prunes local data older than 90 days via [`scripts/cleanup_
 
 [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml):
 
-- **Manual:** `workflow_dispatch`
-- **Scheduled:** `0 23 * * *` UTC = **07:00 Beijing time**
+- **Manual only:** `workflow_dispatch`
+- **Default deployment:** mac mini via local `run.sh` / LaunchAgent
 
 Repository secrets:
 
@@ -398,7 +408,7 @@ Repository secrets:
 
 ## Status
 
-Early but real. The closed loop — **fetch RSS → select → extract → summarize → dedupe-aware overview → email** — runs end-to-end locally and on GitHub Actions. Source packs and security guardrails are the highest-leverage knobs; prompt tuning ships iteratively.
+Early but real. The closed loop — **fetch RSS → select → extract → summarize → dedupe-aware overview → email** — runs end-to-end on the local mac mini, with GitHub Actions kept as a manual fallback. Source packs and security guardrails are the highest-leverage knobs; prompt tuning ships iteratively.
 
 | Surface | State |
 |---|---|
@@ -409,7 +419,7 @@ Early but real. The closed loop — **fetch RSS → select → extract → summa
 | Prompt-injection guardrails | ✅ stable |
 | iCloud SMTP + `.md` fallback | ✅ stable |
 | `./run.sh --scheduled` interval guard | ✅ stable |
-| GitHub Actions daily cron + history cache | ✅ stable |
+| GitHub Actions manual fallback + history cache | ✅ stable |
 | Telegram / Slack output | ⏳ planned |
 | Web preview UI | ⏳ planned |
 

@@ -6,7 +6,7 @@
   <img src="docs/assets/morningmodel-banner.png" alt="MorningModel — AI + Finance daily brief" width="100%" />
 </p>
 
-> **RSS 是信息洪流，收件箱才是终点。** MorningModel 会从 AI 产业、AI 研究与安全、全球金融市场的高信号 RSS 源中抓取内容，过滤低质量条目，用你已经配置好的 LLM provider 生成中文晨报，并通过 iCloud SMTP 发到邮箱。**41 个精选信息源** · **3 个栏目** · **3 个 LLM 提供商**（OpenAI · DeepSeek · Gemini）· `last-digest` 去重 · 对所有外部内容做 prompt-injection 防护 · 本地 `./run.sh` 或 GitHub Actions 每天北京时间 07:00 自动运行。
+> **RSS 是信息洪流，收件箱才是终点。** MorningModel 会从 AI 产业、AI 研究与安全、全球金融市场的高信号 RSS 源中抓取内容，过滤低质量条目，用你已经配置好的 LLM provider 生成中文晨报，并通过 iCloud SMTP 发到邮箱。**41 个精选信息源** · **3 个栏目** · **3 个 LLM 提供商**（OpenAI · DeepSeek · Gemini）· `last-digest` 去重 · 对所有外部内容做 prompt-injection 防护 · 默认由 mac mini 本地 `./run.sh` 自动运行，GitHub Actions 仅作为手动备用方案。
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square" /></a>
@@ -70,7 +70,7 @@ MorningModel 的目标很简单：
 | **中文输出** | `config.toml` 默认 `output_language = "Chinese"`，摘要、栏目和 **入选优势** 都以中文生成。 |
 | **邮件投递** | iCloud SMTP (`smtp.mail.me.com:587`)，Markdown 经 `markdown2` 渲染为 HTML 邮件。 |
 | **本地回退** | SMTP 凭据缺失或发送失败时，保存 `daily-digest-YYYY-MM-DD.md`。 |
-| **自动化** | 本地 `./run.sh` · 带间隔保护的 `./run.sh --scheduled` · GitHub Actions 每天 23:00 UTC 运行。 |
+| **自动化** | mac mini 本地 `./run.sh` · 带间隔保护的 `./run.sh --scheduled` · GitHub Actions 仅保留 `workflow_dispatch` 手动备用。 |
 | **安全防护** | RSS、网页、PDF、历史摘要都按不可信输入处理；见 [`src/better_morning/prompt_security.py`](src/better_morning/prompt_security.py)。 |
 
 ---
@@ -212,13 +212,46 @@ max_articles = 20
 
 RSS、网页、PDF、newsletter 和历史摘要都会被包进 `BEGIN_UNTRUSTED_CONTENT` 标记，清理控制字符和零宽字符，并扫描常见 prompt-injection 模式。防护不能替代源头筛选，但能显著降低风险。
 
+抓取层默认保留 Chromium 自身沙箱，并阻止访问 `localhost`、内网 IP 和本地网络主机名，除非你显式放开：
+
+```toml
+[content_extraction_settings]
+browser_sandbox = true
+allow_private_networks = false
+```
+
+只有在整个任务已经运行在更强的容器/运行时沙箱内时，才建议把 `browser_sandbox` 设为 `false`。
+
 ### 6. 同一条流水线，三种运行方式
 
 | 模式 | 命令 | 说明 |
 |---|---|---|
 | **手动运行** | `./run.sh` | 立即生成一次晨报 |
 | **本地定时** | `./run.sh --scheduled` | 只有达到 `BETTER_MORNING_RUN_INTERVAL_DAYS`（默认 5 天）才真正运行 |
-| **GitHub Actions** | `workflow_dispatch` 或 cron `0 23 * * *` UTC | 云端每日运行，并缓存 `history/` |
+| **GitHub Actions** | 仅 `workflow_dispatch` | 云端手动备用运行，并缓存 `history/` |
+
+---
+
+## 人工反馈
+
+推荐邮件回复统一以 `晨报反馈：` 开头，这样系统更容易自动识别，而且更省 token。
+
+另外建议回复邮件主题固定以 `Re: MorningModel Feedback` 开头，这样系统只处理特定主题前缀的邮件，误判率更低。
+
+示例：
+
+```text
+晨报反馈：栏目=AI Top 10；来源 techcrunch.com 降权，理由：重复多 | 主题 agents 优先，理由：值得长期跟踪
+```
+
+如果你希望自动收取这类反馈，可以配置一个专门的 IMAP 邮箱，然后运行：
+
+```bash
+python scripts/poll_feedback_inbox.py --mark-seen
+```
+
+系统会把可识别的反馈写入 `history/feedback_memory.json`，在下次排序时自动生效。
+可接受的主题前缀通过 `BETTER_MORNING_FEEDBACK_SUBJECT_PREFIXES` 配置。
 
 macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一次性 timer。例如每 12 小时执行 `./run.sh --scheduled`，真正的重活由脚本判断是否到期。
 
@@ -227,7 +260,7 @@ macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一�
 ## Architecture
 
 ```text
-┌─────────────────────── run.sh / GitHub Actions ───────────────────────┐
+┌──────────────────── run.sh（默认）/ GitHub Actions（手动备用） ────────────────────┐
 │  加载 .env.local secrets · uv sync · 安装 Playwright 浏览器（CI）       │
 └───────────────────────────────┬───────────────────────────────────────┘
                                 ▼
@@ -303,7 +336,7 @@ macOS 上建议把自动化目录放在 `~/Code/better-morning` 或 `~/.local/sh
 [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml) 支持：
 
 - 手动运行：`workflow_dispatch`
-- 定时运行：`0 23 * * *` UTC，即北京时间 07:00
+- 默认部署：mac mini 本地 `run.sh` / LaunchAgent
 
 推荐配置的 repository secrets：
 
@@ -315,7 +348,7 @@ macOS 上建议把自动化目录放在 `~/Code/better-morning` 或 `~/.local/sh
 | `BETTER_MORNING_SMTP_PASSWORD` | 邮件投递需要 |
 | `BETTER_MORNING_RECIPIENT_EMAIL` | 邮件投递需要 |
 
-GitHub Actions 会缓存 `history/`，让跨天去重继续生效。
+GitHub Actions 会缓存 `history/`，让你在手动触发云端备用运行时仍然保留跨天去重能力。
 
 ---
 
@@ -342,7 +375,7 @@ GitHub Actions 会缓存 `history/`，让跨天去重继续生效。
 | prompt-injection guardrails | stable |
 | iCloud SMTP + `.md` 回退 | stable |
 | `./run.sh --scheduled` 间隔保护 | stable |
-| GitHub Actions daily cron + history cache | stable |
+| GitHub Actions 手动备用 + history cache | stable |
 | Telegram / Slack 输出 | planned |
 | Web preview UI | planned |
 

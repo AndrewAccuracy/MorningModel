@@ -14,6 +14,8 @@ nvim_*.log
 # better morning
 history
 daily-*
+dry-run-digest-*
+feedback-buttons-preview.html
 debug
 run.log
 run.err.log

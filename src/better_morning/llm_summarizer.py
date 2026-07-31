@@ -18,12 +18,14 @@ from .rss_fetcher import Article
 from .article_utils import (
     estimate_article_quality_signals,
     extract_domain,
+    extract_story_fingerprint,
     extract_topic_keywords,
     impact_keyword_score,
     infer_source_scores,
     title_similarity,
 )
 from .search_memory import SearchMemory
+from .feedback_memory import FeedbackMemory
 
 
 # Rough estimate: 1 token = 4 characters (common for English text)
@@ -38,7 +40,29 @@ MAX_PDF_BYTES = 290000
 # This accounts for the fixed prompt text that wraps the article summaries
 COLLECTION_PROMPT_OVERHEAD_CHARS = 500
 
+PAYWALL_CONTENT_MARKERS = (
+    "almost there... register to read",
+    "almost there ... register to read",
+    "register to read",
+    "member-only story",
+    "member only story",
+    "subscribe to read",
+    "sign in to continue",
+    "log in to continue",
+    "create an account to continue",
+    "complete digital access",
+    "explore more offers",
+    "terms & conditions apply",
+    "performing security verification",
+    "this website uses a security service",
+    "checking if the site connection is secure",
+    "verify you are human",
+    "verify you are not a bot",
+    "enable javascript and cookies to continue",
+)
+
 DEFAULT_ARTICLE_SELECTION_PROMPT_TEMPLATE = """From the following list of articles, select the top {num_to_select} most relevant and important ones according to the impact they have in the world.
+Return up to {num_to_select} articles. Do not fill the quota with weak, duplicate, stale, unverifiable, paywalled, login-gated, anti-bot, or thin-summary items.
 Provide your answer as a JSON object with a single key "selected_indices" containing a list of the chosen article numbers (e.g., [1, 5, 10]).
 The selected articles will be included in a news digest summary that responds to this description: "{collection_prompt}"
 
@@ -56,7 +80,7 @@ DEFAULT_COLLECTION_SUMMARY_PROMPT_TEMPLATE = """Here are a few digests of previo
 
 Consider that today is {today}.
 
-1. Identify the {n_most_important_news} most important stories.
+1. Identify up to {n_most_important_news} important stories. It is acceptable and preferred to return fewer items when the source material is weak, duplicate, stale, unverifiable, or gated.
 2. Considering that the same story may be repeated in multitiple articles from different perspectives and with different details, write a cohesive and concise summary of those top stories.
 3. The final summary must be in {output_language}.
 4. **Crucially, for every piece of information you include, you MUST cite the source using a Markdown link like this: ([feed name](Link)).**
@@ -64,6 +88,7 @@ Consider that today is {today}.
 6. Answer with only the final summary, without introductions nor conclusions.
 7. {repeated_news_instruction}
 8. Note that previous digest may had this section empy. Moreover, the importance of the news must be evaluated based on this same section of the previous digests, not based on the other sections.
+9. Use only facts present in the article summaries below; do not infer dates, model names, prices, benchmarks, policy details, or market numbers from outside knowledge.
 
 {user_guideline}
 
@@ -113,6 +138,7 @@ class LLMSummarizer:
         collection_prompt: Optional[str] = None,
         previous_digests_context: Optional[str] = None,
         search_memory: Optional[SearchMemory] = None,
+        feedback_memory: Optional[FeedbackMemory] = None,
     ) -> List[Article]:
         """
         Uses the reasoner LLM to select the most relevant articles for content fetching
@@ -121,7 +147,11 @@ class LLMSummarizer:
         if not articles:
             return []
 
-        articles = self._prepare_candidate_articles(articles, search_memory)
+        articles = self._prepare_candidate_articles(
+            articles,
+            search_memory,
+            feedback_memory,
+        )
         if not articles:
             print("No candidate articles remained after quality and dedup filtering.")
             return []
@@ -296,6 +326,7 @@ Articles:
         article: Article,
         search_memory: Optional[SearchMemory] = None,
         peer_articles: Optional[List[Article]] = None,
+        feedback_memory: Optional[FeedbackMemory] = None,
     ) -> float:
         credibility, readership = self._source_scores(article)
         speculative, low_signal = estimate_article_quality_signals(
@@ -338,15 +369,21 @@ Articles:
             score -= 4.0
         if search_memory is not None:
             score += search_memory.article_memory_score(article)
+        if feedback_memory is not None:
+            score += feedback_memory.article_feedback_score(article)
         return score
 
     def _prepare_candidate_articles(
         self,
         articles: List[Article],
         search_memory: Optional[SearchMemory] = None,
+        feedback_memory: Optional[FeedbackMemory] = None,
     ) -> List[Article]:
         ranked = []
         for article in articles:
+            if feedback_memory is not None and feedback_memory.article_is_blocked(article):
+                print(f"Skipping blocked candidate via feedback memory: '{article.title}'")
+                continue
             credibility, readership = self._source_scores(article)
             speculative, low_signal = estimate_article_quality_signals(
                 article.title, article.summary
@@ -366,6 +403,7 @@ Articles:
                         article,
                         search_memory,
                         peer_articles=articles,
+                        feedback_memory=feedback_memory,
                     ),
                     article,
                 )
@@ -387,6 +425,123 @@ Articles:
             deduped.append(article)
 
         return deduped
+
+    def _article_cluster_matches(
+        self,
+        article: Article,
+        existing: Article,
+    ) -> bool:
+        article_fingerprint = extract_story_fingerprint(article.title, article.summary)
+        existing_fingerprint = extract_story_fingerprint(existing.title, existing.summary)
+        if article_fingerprint and article_fingerprint == existing_fingerprint:
+            return True
+
+        similarity = title_similarity(article.title, existing.title)
+        if similarity >= 0.42:
+            return True
+
+        article_topics = set(extract_topic_keywords(article.title, article.summary))
+        existing_topics = set(extract_topic_keywords(existing.title, existing.summary))
+        topic_overlap = len(article_topics & existing_topics)
+        if topic_overlap >= 2:
+            return True
+
+        return False
+
+    def _build_editorial_mix(
+        self,
+        articles: List[Article],
+    ) -> List[Article]:
+        articles = [
+            article for article in articles if self._has_usable_source_content(article)
+        ]
+
+        ranked = sorted(
+            articles,
+            key=lambda article: self._article_priority_score(
+                article,
+                peer_articles=articles,
+            ),
+            reverse=True,
+        )
+
+        distinct_sources = {
+            extract_domain(str(article.link))
+            for article in ranked
+        }
+        source_cap = 2
+        cluster_cap = 1
+        target_count = min(
+            len(ranked),
+            max(self.settings.n_most_important_news + 3, self.settings.n_most_important_news * 2),
+        )
+        source_cap = max(
+            source_cap,
+            (target_count + max(1, len(distinct_sources)) - 1)
+            // max(1, len(distinct_sources)),
+        )
+
+        selected: List[Article] = []
+        deferred: List[Article] = []
+        source_counts: dict[str, int] = {}
+        cluster_counts: List[int] = []
+
+        for article in ranked:
+            source_key = extract_domain(str(article.link))
+            if source_counts.get(source_key, 0) >= source_cap:
+                deferred.append(article)
+                continue
+
+            matched_cluster = None
+            for idx, existing in enumerate(selected):
+                if self._article_cluster_matches(article, existing):
+                    matched_cluster = idx
+                    break
+
+            if matched_cluster is not None and cluster_counts[matched_cluster] >= cluster_cap:
+                deferred.append(article)
+                continue
+
+            selected.append(article)
+            source_counts[source_key] = source_counts.get(source_key, 0) + 1
+            if matched_cluster is None:
+                cluster_counts.append(1)
+            else:
+                cluster_counts[matched_cluster] += 1
+
+            if len(selected) >= target_count:
+                break
+
+        refill_target = min(target_count, max(self.settings.n_most_important_news, len(selected)))
+        for article in deferred:
+            if len(selected) >= refill_target:
+                break
+            source_key = extract_domain(str(article.link))
+            if source_counts.get(source_key, 0) >= source_cap:
+                continue
+            if any(self._article_cluster_matches(article, existing) for existing in selected):
+                continue
+            selected.append(article)
+            source_counts[source_key] = source_counts.get(source_key, 0) + 1
+
+        return selected
+
+    def _has_usable_source_content(self, article: Article) -> bool:
+        content = (article.content or "").lower()
+        if not content:
+            return True
+        if any(marker in content for marker in PAYWALL_CONTENT_MARKERS):
+            print(
+                f"Skipping article with unusable paywall/register content: '{article.title}'"
+            )
+            return False
+        words = re.findall(r"[a-zA-Z\u4e00-\u9fff]+", content)
+        if len(words) < 40 and (article.summary or "").strip() == (article.content or "").strip():
+            print(
+                f"Skipping article with only a short RSS-summary fallback: '{article.title}'"
+            )
+            return False
+        return True
 
     def _get_masked_api_key(self) -> str:
         """Returns a masked version of the API key for debugging."""
@@ -667,6 +822,13 @@ Articles:
 
         if not effectively_summarized_articles:
             return "No articles with valid summaries.", []
+
+        editorial_mix = self._build_editorial_mix(effectively_summarized_articles)
+        if len(editorial_mix) != len(effectively_summarized_articles):
+            print(
+                f"Editorial mix reduced collection prompt candidates from {len(effectively_summarized_articles)} to {len(editorial_mix)}."
+            )
+        effectively_summarized_articles = editorial_mix
 
         # Build concatenated summaries with token budget tracking
         # Reserve 25% of token budget for model response and prompt overhead

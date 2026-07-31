@@ -15,6 +15,44 @@ from better_morning.content_extractor import ContentExtractor
 from better_morning.llm_summarizer import LLMSummarizer
 from better_morning.document_generator import DocumentGenerator
 from better_morning.search_memory import SearchMemory
+from better_morning.feedback_memory import FeedbackMemory
+
+
+def is_dry_run_enabled() -> bool:
+    value = os.getenv("BETTER_MORNING_DRY_RUN", "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def save_local_dry_run_outputs(
+    document_generator: DocumentGenerator,
+    collection_summaries: Dict[str, str],
+    articles_by_collection: Dict[str, List[Article]],
+    fetch_reports: Dict[str, dict],
+    collection_errors: Dict[str, str] | None,
+    one_line_take: str | None,
+    final_markdown_digest: str,
+    today: datetime,
+) -> None:
+    date_str = today.strftime("%Y-%m-%d")
+    markdown_path = f"dry-run-digest-{date_str}.md"
+    html_path = f"dry-run-digest-{date_str}.html"
+
+    with open(markdown_path, "w", encoding="utf-8") as f:
+        f.write(final_markdown_digest)
+
+    email_html = document_generator.generate_email_html(
+        collection_summaries,
+        today,
+        fetch_reports,
+        collection_errors,
+        one_line_take,
+        articles_by_collection,
+    )
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(email_html)
+
+    print(f"DRY RUN: Markdown digest saved to {markdown_path}")
+    print(f"DRY RUN: HTML preview saved to {html_path}")
 
 
 async def process_collection(
@@ -45,6 +83,7 @@ async def process_collection(
         if global_config.adaptive_search_enabled
         else None
     )
+    feedback_memory = FeedbackMemory(collection_config.name)
 
     try:
         # 1. Fetch new RSS articles
@@ -52,10 +91,11 @@ async def process_collection(
             collection_config.name, collection_config.max_age
         )
         print(f"Found {len(new_articles)} new articles for {collection_config.name}.")
+        fetch_report = rss_fetcher.get_fetch_report()
         if search_memory is not None:
+            search_memory.record_feed_fetch_report(fetch_report)
             search_memory.record_observed_articles(new_articles)
         if not new_articles:
-            fetch_report = rss_fetcher.get_fetch_report()
             if search_memory is not None:
                 search_memory.save()
             return (
@@ -92,12 +132,12 @@ async def process_collection(
             collection_config.collection_prompt,
             digest_context,
             search_memory=search_memory,
+            feedback_memory=feedback_memory,
         )
         if not articles_to_fetch:
             print(
                 f"LLM did not select any articles to fetch for '{collection_config.name}'."
             )
-            fetch_report = rss_fetcher.get_fetch_report()
             if search_memory is not None:
                 search_memory.save()
             return (
@@ -196,7 +236,6 @@ async def process_collection(
             articles_with_content = filtered_articles
 
         if not articles_with_content:
-            fetch_report = rss_fetcher.get_fetch_report()
             if search_memory is not None:
                 search_memory.save()
             return (
@@ -222,12 +261,12 @@ async def process_collection(
         )
 
         # Get fetch report
-        fetch_report = rss_fetcher.get_fetch_report()
         debug_report = ""
         if search_memory is not None:
             scope_plan = search_memory.plan_scope(new_articles, 3 * collection_config.llm_settings.n_most_important_news)
             search_memory.record_selected_articles(summarized_articles)
             debug_report = search_memory.build_debug_report(scope_plan)
+            debug_report += "\n\n" + feedback_memory.build_debug_report()
             search_memory.save()
 
         return (
@@ -244,6 +283,9 @@ async def process_collection(
 
 async def main():
     print("Starting better-morning daily digest generation...")
+    dry_run = is_dry_run_enabled()
+    if dry_run:
+        print("DRY RUN mode enabled: local files only, no email/GitHub output, no history writes.")
 
     # 1. Load global configuration
     global_config = load_global_config()
@@ -289,10 +331,10 @@ async def main():
 
     # 3. Aggregate results
     collection_summaries: Dict[str, str] = {
-        name: summary for name, summary, _, _, _ in collection_results
+        name: summary for name, summary, _, _, _, _ in collection_results
     }
     articles_by_collection: Dict[str, List[Article]] = {
-        name: articles for name, _, articles, _, _ in collection_results
+        name: articles for name, _, articles, _, _, _ in collection_results
     }
 
     # Collect all unique skipped sources from all processing runs
@@ -329,7 +371,18 @@ async def main():
     # 5. Output the digest based on global settings
     output_type = global_config.output_settings.output_type
 
-    if output_type == "github_release":
+    if dry_run:
+        save_local_dry_run_outputs(
+            document_generator,
+            collection_summaries,
+            articles_by_collection,
+            fetch_reports,
+            collection_errors or None,
+            one_line_take,
+            final_markdown_digest,
+            today,
+        )
+    elif output_type == "github_release":
         repo_slug = os.getenv(
             "GITHUB_REPOSITORY"
         )  # e.g., 'owner/repo' from GitHub Actions
@@ -379,6 +432,7 @@ async def main():
                 fetch_reports,
                 collection_errors or None,
                 one_line_take,
+                articles_by_collection,
             )
             sent = document_generator.send_via_email(
                 subject, email_html, recipient_email, raw_html=True
@@ -445,6 +499,10 @@ async def main():
         print(
             f"\n⚠️  {total_failed} feeds failed. Check the detailed report in the digest for URLs to potentially remove."
         )
+
+    if dry_run:
+        print("DRY RUN: Skipping digest history and processed-article history updates.")
+        return
 
     # 6. Save the generated digest to history for future context
     document_generator.save_digest_to_history(collection_summaries, today)

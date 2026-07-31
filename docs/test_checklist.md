@@ -20,8 +20,7 @@
 ## Cron Check
 
 - Confirm `.github/workflows/daily_digest.yml` has `workflow_dispatch`.
-- Confirm cron is daily at 23:00 UTC.
-- Confirm 23:00 UTC equals 07:00 Beijing time the next day.
+- Confirm there is no scheduled cron trigger when mac mini is the default deployment.
 
 ## Email Verification
 

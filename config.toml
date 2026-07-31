@@ -23,6 +23,9 @@ prompt_template = """请用中文总结下面文章，要求：
 article_selection_prompt_template = """请从下面文章列表中选择最值得进入国际晨报的前 {num_to_select} 条。
 选择依据：全球影响力、方向性、信息密度、政策/产业/市场影响，以及今天是否值得继续跟踪。
 这批文章服务于栏目要求：{collection_prompt}
+最多选择 {num_to_select} 条，但不要为了凑数而选满。
+如果条目低信号、重复、陈旧、不可验证、像营销/教程/注册页/会员页/反爬验证页、只有很短 RSS 摘要，或无法服务栏目定位，请直接少选。
+同一主线的多篇报道只选信息密度最高、来源最可靠的一篇。
 
 请只返回合法 JSON，格式为 {{"selected_indices": [1, 2, 3]}}。
 
@@ -45,9 +48,12 @@ collection_summary_prompt_template = """你是“AI + Finance 国际晨报邮件
 3. 每条必须包含来源 Markdown 链接，格式类似 ([Source](Link))；
 4. 每条包含 2-4 句中文摘要；
 5. 每条最后必须补一句“入选优势：...”，说明它相对于普通候选条目的优势；
-6. 如果高质量内容不足 {n_most_important_news} 条，宁缺毋滥；
-7. 避免重复 previous digests 里已经覆盖过的旧故事；
-8. 不要写开场白、结语或栏目标题，只输出编号列表。
+6. 最多输出 {n_most_important_news} 条；宁可少于 {n_most_important_news} 条，也不要补水、凑数或重复同一主线；
+7. 同一事件/同一产品发布/同一政策信号的多篇文章只能合并为一条，选择最可靠来源作为主引用，可在同条中补充其他来源；
+8. 严格只使用 Article summaries 中明确出现的事实，不要凭常识、外部知识或 previous digests 补写日期、价格、benchmark、融资额、政策细节或市场数字；
+9. 避免重复 previous digests 里已经覆盖过的旧故事；
+10. 候选内容不相关、重复、陈旧、不可验证、正文不可用、只有注册/会员/反爬页面、或来源摘要太薄时，不要写入最终列表；
+11. 不要写开场白、结语或栏目标题，只输出编号列表。
 
 Previous digests:
 {context_section}

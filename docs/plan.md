@@ -9,7 +9,7 @@ This repository has been configured as a daily AI and finance email digest.
 - Added `collections/finance_news.toml` for global macro and market news.
 - Removed the original sample collections so only the active morning brief collections run by default.
 - Updated `config.toml` for Chinese output, OpenAI models, iCloud SMTP, full-article extraction, LLM filtering, and digest prompts.
-- Updated `.github/workflows/daily_digest.yml` to run daily at 23:00 UTC, which is 07:00 Beijing time.
+- Updated `.github/workflows/daily_digest.yml` to keep `workflow_dispatch` only, with mac mini as the default deployment path.
 - Updated the email subject to `[Morning Brief] AI + Finance Daily Digest | YYYY-MM-DD`.
 - Updated markdown generation so the digest contains:
   - `AI Top 10`
@@ -52,7 +52,7 @@ If email settings are missing, the script saves a local markdown file named like
 
 ## GitHub Actions
 
-The workflow supports manual runs through `workflow_dispatch` and scheduled runs at 23:00 UTC daily.
+The workflow supports manual runs through `workflow_dispatch` only; the default scheduled deployment path is the local mac mini.
 
 Add the relevant repository secrets:
 
