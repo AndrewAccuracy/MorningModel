@@ -479,6 +479,66 @@ def test_editorial_mix_deduplicates_same_model_story_across_sources():
     assert len({"latent-opus", "tc-opus"} & set(mix_ids)) == 1
 
 
+def test_editorial_mix_refills_with_related_but_distinct_macro_stories():
+    settings = LLMSettings(
+        light_model="openai/gpt-4o-mini",
+        n_most_important_news=3,
+        api_key="test-key",
+    )
+    summarizer = LLMSummarizer(settings, GlobalConfig())
+
+    fed_rates = Article(
+        id="fed-rates",
+        title="Fed inflation rates outlook shifts after jobs data",
+        link="https://www.cnbc.com/fed-rates",
+        published_date=datetime(2025, 1, 1, 10, tzinfo=timezone.utc),
+        summary="Markets repriced the Fed path after a jobs report changed inflation expectations.",
+        content=(
+            "Markets repriced the Fed path after a jobs report changed inflation "
+            "expectations. Treasury yields, the dollar, and equity futures moved "
+            "as investors reassessed the likely policy path."
+        ),
+        content_type="text/plain",
+        feed_name="CNBC Finance",
+    )
+    energy_inflation = Article(
+        id="energy-inflation",
+        title="Energy inflation rates trade shock lifts oil risk premium",
+        link="https://www.eia.gov/energy-inflation",
+        published_date=datetime(2025, 1, 1, 11, tzinfo=timezone.utc),
+        summary="Oil and fuel-price pressures raised inflation concerns for traders.",
+        content=(
+            "Oil and fuel-price pressures raised inflation concerns for traders. "
+            "The move affected energy equities, inflation breakevens, and rate-cut "
+            "expectations across several markets."
+        ),
+        content_type="text/plain",
+        feed_name="EIA Today in Energy",
+    )
+    ai_costs = Article(
+        id="ai-costs",
+        title="Big Tech capital spending changes equity leadership",
+        link="https://www.wsj.com/ai-costs",
+        published_date=datetime(2025, 1, 1, 12, tzinfo=timezone.utc),
+        summary="Investors weighed AI capital spending against expected earnings.",
+        content=(
+            "Investors weighed AI capital spending against expected earnings. "
+            "The story connects hyperscaler budgets, margins, index concentration, "
+            "and broader equity-market leadership."
+        ),
+        content_type="text/plain",
+        feed_name="Wall Street Journal Markets",
+    )
+
+    mix = summarizer._build_editorial_mix([fed_rates, energy_inflation, ai_costs])
+
+    assert [article.id for article in mix] == [
+        "fed-rates",
+        "ai-costs",
+        "energy-inflation",
+    ]
+
+
 def test_editorial_mix_excludes_security_verification_pages():
     settings = LLMSettings(
         light_model="openai/gpt-4o-mini",

@@ -146,6 +146,74 @@ class RSSFetcher:
 
         return article_date < cutoff_date
 
+    def _parse_entry_datetime(self, entry) -> Optional[datetime]:
+        """Return the best available published/updated date for a feed entry."""
+        for parsed_field in ("published_parsed", "updated_parsed", "created_parsed"):
+            parsed_value = entry.get(parsed_field)
+            if not parsed_value:
+                continue
+            try:
+                return datetime(*parsed_value[:6], tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                pass
+
+        for text_field in ("published", "updated", "created", "dc_date", "date"):
+            date_text = entry.get(text_field)
+            if not date_text:
+                continue
+            parsed_dt = self._parse_datetime_text(str(date_text))
+            if parsed_dt is not None:
+                return parsed_dt
+
+        return self._infer_entry_datetime_from_url(str(entry.get("link", "")))
+
+    def _parse_datetime_text(self, value: str) -> Optional[datetime]:
+        try:
+            parsed_dt = email.utils.parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            parsed_dt = None
+
+        if parsed_dt is None:
+            for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d %B %Y", "%B %d, %Y"):
+                try:
+                    parsed_dt = datetime.strptime(value.strip(), fmt)
+                    break
+                except ValueError:
+                    continue
+
+        if parsed_dt is None:
+            return None
+        if parsed_dt.tzinfo is None:
+            return parsed_dt.replace(tzinfo=timezone.utc)
+        return parsed_dt.astimezone(timezone.utc)
+
+    def _infer_entry_datetime_from_url(self, url: str) -> Optional[datetime]:
+        """Infer dates from common publisher URL patterns when RSS omits them."""
+        patterns = (
+            r"/(?:date/)?(?P<year>20\d{2})/(?P<month>\d{1,2})/(?P<day>\d{1,2})(?:/|$)",
+            r"[./_-](?P<year>20\d{2})(?P<month>\d{2})(?P<day>\d{2})(?:[^\d]|$)",
+            r"/p(?P<year>\d{2})(?P<month>\d{2})(?P<day>\d{2})[a-z]?(?:[^\d]|$)",
+            r"/pr(?P<year>\d{2})(?P<month>\d{2})(?P<day>\d{2})[a-z]?(?:[^\d]|$)",
+            r"[./_-]pr(?P<year>\d{2})(?P<month>\d{2})(?P<day>\d{2})[a-z]?(?:[^\d]|$)",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if not match:
+                continue
+            year = int(match.group("year"))
+            if year < 100:
+                year += 2000
+            try:
+                return datetime(
+                    year,
+                    int(match.group("month")),
+                    int(match.group("day")),
+                    tzinfo=timezone.utc,
+                )
+            except ValueError:
+                continue
+        return None
+
     def _load_historical_articles(self, collection_name: str) -> List[Article]:
         history_file = self._get_history_file_path(collection_name)
         if not os.path.exists(history_file):
@@ -468,41 +536,15 @@ class RSSFetcher:
                     article_link = entry.link
                     article_id = article_link  # Using link as a unique ID for now
 
-                    published_parsed = entry.get("published_parsed")
-                    published_date = None
-                    if published_parsed:
-                        try:
-                            published_date = datetime(
-                                *published_parsed[:6], tzinfo=timezone.utc
+                    published_date = self._parse_entry_datetime(entry)
+                    if published_date is None:
+                        if cutoff_date is not None:
+                            print(
+                                f"Skipping article '{entry.title}' - no reliable publish date available for max_age filtering"
                             )
-                        except ValueError:
-                            # Fallback for incorrect time tuples or if timezone info is missing
-                            # Try parsing published string directly with email.utils.parsedate_to_datetime
-                            published_date_str = entry.get("published")
-                            if published_date_str:
-                                try:
-                                    parsed_dt = email.utils.parsedate_to_datetime(
-                                        published_date_str
-                                    )
-                                    if parsed_dt.tzinfo is None:
-                                        published_date = parsed_dt.replace(
-                                            tzinfo=timezone.utc
-                                        )
-                                    else:
-                                        published_date = parsed_dt
-                                except (TypeError, ValueError):
-                                    print(
-                                        f"Warning: Could not parse date '{published_date_str}' for article '{entry.title}'. Using current time."
-                                    )
-                                    published_date = datetime.now(timezone.utc)
-                            else:
-                                print(
-                                    f"Warning: No publish date found for article '{entry.title}'. Using current time."
-                                )
-                                published_date = datetime.now(timezone.utc)
-                    else:
+                            continue
                         print(
-                            f"Warning: No 'published_parsed' found for article '{entry.title}'. Using current time."
+                            f"Warning: No reliable publish date found for article '{entry.title}'. Using current time."
                         )
                         published_date = datetime.now(timezone.utc)
 

@@ -11,12 +11,18 @@ if "GITHUB_REPOSITORY" not in os.environ:
         "your-username/your-repo"  # Replace with your actual repo for local GitHub testing
     )
 
-if "BETTER_MORNING_LLM_API_KEY" not in os.environ:
-    # IMPORTANT: Replace with a real (local or test) LLM API key if you want to test LLM functionality locally.
-    # For basic testing of the flow, a dummy value is fine if litellm is mocked or LLM calls are skipped.
+llm_key_envs = (
+    "BETTER_MORNING_OPENAI_API_KEY",
+    "BETTER_MORNING_DEEPSEEK_API_KEY",
+    "BETTER_MORNING_GEMINI_API_KEY",
+    "BETTER_MORNING_LLM_API_KEY",
+)
+if not any(os.getenv(env_name) for env_name in llm_key_envs):
+    # IMPORTANT: Replace with a real local/test LLM API key if you want to test
+    # summarization locally. A dummy value is only useful when LLM calls are mocked.
     os.environ["BETTER_MORNING_LLM_API_KEY"] = "sk-dummy-key-for-local-testing"
     print(
-        "WARNING: BETTER_MORNING_LLM_API_KEY not set. Using a dummy key. LLM calls will likely fail or use a default."
+        "WARNING: no LLM API key env var is set. Using a dummy key; LLM calls will likely fail."
     )
 
 # Optional: Set these if you want to test email output locally (requires valid SMTP server and credentials)

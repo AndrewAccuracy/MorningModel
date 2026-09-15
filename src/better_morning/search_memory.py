@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from math import ceil
 from pathlib import Path
 from typing import Any
 
@@ -136,7 +137,7 @@ class SearchMemory:
         return counts
 
     def _ensure_source_stats(self, source_key: str) -> dict[str, Any]:
-        return self.collection_state.setdefault("sources", {}).setdefault(
+        stats = self.collection_state.setdefault("sources", {}).setdefault(
             source_key,
             {
                 "seen": 0,
@@ -149,9 +150,20 @@ class SearchMemory:
                 "last_selected": None,
             },
         )
+        # Older search_memory.json files predate feed-level metrics and daily
+        # buckets. Backfill defaults lazily so a normal run migrates them.
+        stats.setdefault("seen", 0)
+        stats.setdefault("selected", 0)
+        stats.setdefault("fetch_success", 0)
+        stats.setdefault("fetch_failure", 0)
+        stats.setdefault("feed_success", 0)
+        stats.setdefault("feed_failure", 0)
+        stats.setdefault("last_seen", None)
+        stats.setdefault("last_selected", None)
+        return stats
 
     def _ensure_topic_stats(self, topic: str) -> dict[str, Any]:
-        return self.collection_state.setdefault("topics", {}).setdefault(
+        stats = self.collection_state.setdefault("topics", {}).setdefault(
             topic,
             {
                 "seen": 0,
@@ -160,6 +172,11 @@ class SearchMemory:
                 "last_selected": None,
             },
         )
+        stats.setdefault("seen", 0)
+        stats.setdefault("selected", 0)
+        stats.setdefault("last_seen", None)
+        stats.setdefault("last_selected", None)
+        return stats
 
     def _article_source_key(self, article: Article) -> str:
         return extract_domain(str(article.source_url or article.link))
@@ -345,6 +362,27 @@ class SearchMemory:
                 continue
             curated.append(article)
             source_counts[source_key] = source_counts.get(source_key, 0) + 1
+
+        if len(curated) < fetch_budget:
+            selected_ids = {article.id for article in curated}
+            ranked_source_diversity = len(
+                {self._article_source_key(article) for article in ranked}
+            )
+            relaxed_source_cap = max(
+                2,
+                ceil(fetch_budget / max(1, ranked_source_diversity)),
+            )
+            for article in ranked:
+                if len(curated) >= fetch_budget:
+                    break
+                if article.id in selected_ids:
+                    continue
+                source_key = self._article_source_key(article)
+                if source_counts.get(source_key, 0) >= relaxed_source_cap:
+                    continue
+                curated.append(article)
+                selected_ids.add(article.id)
+                source_counts[source_key] = source_counts.get(source_key, 0) + 1
 
         # Keep a small exploration lane so new sources can still prove themselves.
         exploration: list[Article] = []

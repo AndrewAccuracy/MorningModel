@@ -55,8 +55,29 @@ def save_local_dry_run_outputs(
     print(f"DRY RUN: HTML preview saved to {html_path}")
 
 
+def save_local_delivery_fallback(
+    email_html: str,
+    final_markdown_digest: str,
+    today: datetime,
+) -> None:
+    date_str = today.strftime("%Y-%m-%d")
+    markdown_path = f"daily-digest-{date_str}.md"
+    html_path = f"daily-digest-{date_str}.html"
+
+    with open(markdown_path, "w", encoding="utf-8") as f:
+        f.write(final_markdown_digest)
+
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(email_html)
+
+    print(f"Digest saved to {markdown_path}")
+    print(f"Email HTML preview saved to {html_path}")
+
+
 async def process_collection(
-    collection_path: str, global_config: GlobalConfig
+    collection_path: str,
+    global_config: GlobalConfig,
+    persist_search_memory: bool = True,
 ) -> tuple[str, str, List[Article], List[str], dict, str]:
     """
     Processes a single news collection: fetches, extracts, summarizes.
@@ -96,7 +117,7 @@ async def process_collection(
             search_memory.record_feed_fetch_report(fetch_report)
             search_memory.record_observed_articles(new_articles)
         if not new_articles:
-            if search_memory is not None:
+            if search_memory is not None and persist_search_memory:
                 search_memory.save()
             return (
                 collection_config.name,
@@ -138,7 +159,7 @@ async def process_collection(
             print(
                 f"LLM did not select any articles to fetch for '{collection_config.name}'."
             )
-            if search_memory is not None:
+            if search_memory is not None and persist_search_memory:
                 search_memory.save()
             return (
                 collection_config.name,
@@ -236,7 +257,7 @@ async def process_collection(
             articles_with_content = filtered_articles
 
         if not articles_with_content:
-            if search_memory is not None:
+            if search_memory is not None and persist_search_memory:
                 search_memory.save()
             return (
                 collection_config.name,
@@ -267,7 +288,8 @@ async def process_collection(
             search_memory.record_selected_articles(summarized_articles)
             debug_report = search_memory.build_debug_report(scope_plan)
             debug_report += "\n\n" + feedback_memory.build_debug_report()
-            search_memory.save()
+            if persist_search_memory:
+                search_memory.save()
 
         return (
             collection_config.name,
@@ -304,7 +326,11 @@ async def main():
     # Process collections sequentially to avoid overwhelming the LLM API
     for filepath in collection_files:
         try:
-            result = await process_collection(filepath, global_config)
+            result = await process_collection(
+                filepath,
+                global_config,
+                persist_search_memory=not dry_run,
+            )
             collection_results.append(result)
         except Exception as e:
             print(
@@ -438,6 +464,7 @@ async def main():
                 subject, email_html, recipient_email, raw_html=True
             )
             if not sent:
+                save_local_delivery_fallback(email_html, final_markdown_digest, today)
                 raise RuntimeError("Email digest delivery failed.")
     else:
         print(

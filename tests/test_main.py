@@ -21,7 +21,8 @@ async def test_main_dry_run_saves_local_outputs_and_skips_history(tmp_path, monk
         output_settings=OutputSettings(output_type="email"),
     )
 
-    async def fake_process_collection(filepath, config):
+    async def fake_process_collection(filepath, config, persist_search_memory=True):
+        assert persist_search_memory is False
         return (
             "Test",
             "1. **Headline** ([Source](https://example.com))\nSummary",
@@ -65,6 +66,70 @@ async def test_main_dry_run_saves_local_outputs_and_skips_history(tmp_path, monk
     assert "Dry run one-line take." in html_path.read_text(encoding="utf-8")
     save_digest_history.assert_not_called()
     send_via_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_main_email_failure_saves_local_fallback(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("BETTER_MORNING_SMTP_USERNAME", "sender@example.com")
+    monkeypatch.setenv("BETTER_MORNING_SMTP_PASSWORD", "password")
+    monkeypatch.setenv("BETTER_MORNING_RECIPIENT_EMAIL", "recipient@example.com")
+
+    collection_path = tmp_path / "collections" / "test.toml"
+    collection_path.parent.mkdir(parents=True)
+    collection_path.write_text('name = "Test"\n[[feeds]]\nurl = "https://example.com/rss"\n', encoding="utf-8")
+
+    global_config = GlobalConfig(
+        output_settings=OutputSettings(
+            output_type="email",
+            smtp_server="smtp.example.com",
+            smtp_port=587,
+        ),
+    )
+
+    async def fake_process_collection(filepath, config, persist_search_memory=True):
+        return (
+            "Test",
+            "1. **Headline** ([Source](https://example.com))\nSummary",
+            [],
+            [],
+            {"successful": [], "failed": [], "total_feeds": 0},
+            "debug report",
+        )
+
+    monkeypatch.setattr(main_module, "load_global_config", lambda: global_config)
+    monkeypatch.setattr(main_module.glob, "glob", lambda pattern: [str(collection_path)])
+    monkeypatch.setattr(main_module, "process_collection", fake_process_collection)
+    monkeypatch.setattr(
+        main_module.LLMSummarizer,
+        "synthesize_one_line_take",
+        AsyncMock(return_value="One-line take."),
+    )
+
+    save_digest_history = MagicMock()
+    monkeypatch.setattr(
+        main_module.DocumentGenerator,
+        "save_digest_to_history",
+        save_digest_history,
+    )
+    monkeypatch.setattr(
+        main_module.DocumentGenerator,
+        "send_via_email",
+        MagicMock(return_value=False),
+    )
+
+    with pytest.raises(RuntimeError, match="Email digest delivery failed"):
+        await main_module.main()
+
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    markdown_path = Path(f"daily-digest-{date_str}.md")
+    html_path = Path(f"daily-digest-{date_str}.html")
+
+    assert markdown_path.exists()
+    assert html_path.exists()
+    assert "Headline" in markdown_path.read_text(encoding="utf-8")
+    assert "One-line take." in html_path.read_text(encoding="utf-8")
+    save_digest_history.assert_not_called()
 
 
 def test_is_dry_run_enabled(monkeypatch):

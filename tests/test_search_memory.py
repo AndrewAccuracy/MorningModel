@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 
 from better_morning.rss_fetcher import Article
 from better_morning.search_memory import SearchMemory
@@ -113,6 +114,49 @@ def test_search_memory_records_recent_source_metrics(tmp_path, monkeypatch):
     assert failed_metrics["feed_success_rate"] == 0
 
 
+def test_search_memory_backfills_legacy_source_metrics(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    (history_dir / "search_memory.json").write_text(
+        json.dumps(
+            {
+                "collections": {
+                    "AI Top 10": {
+                        "sources": {
+                            "openai.com": {
+                                "seen": 3,
+                                "selected": 1,
+                                "fetch_success": 2,
+                                "fetch_failure": 0,
+                                "last_seen": None,
+                                "last_selected": None,
+                            }
+                        },
+                        "topics": {},
+                        "updated_at": None,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    memory = SearchMemory("AI Top 10")
+    memory.record_feed_fetch_report(
+        {
+            "successful": [
+                {"name": "OpenAI News", "url": "https://openai.com/news/rss.xml"}
+            ],
+            "failed": [],
+        }
+    )
+
+    metrics = memory.source_quality_metrics("openai.com")
+    assert metrics["feed_success"] == 1
+    assert metrics["feed_failure"] == 0
+
+
 def test_search_memory_caps_repeated_low_history_sources(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     memory = SearchMemory("AI Top 10")
@@ -133,3 +177,28 @@ def test_search_memory_caps_repeated_low_history_sources(tmp_path, monkeypatch):
 
     assert source_counts["same-source.com"] == 1
     assert source_counts["other-source.com"] == 1
+
+
+def test_search_memory_refills_budget_from_established_sources(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    memory = SearchMemory("Finance Top 10")
+    articles = []
+
+    for source_idx, domain in enumerate(["ft.com", "wsj.com", "cnbc.com"]):
+        for article_idx in range(6):
+            article = _article(
+                f"Central bank rates market inflation story {source_idx}-{article_idx}",
+                f"https://{domain}/{article_idx}",
+            )
+            articles.append(article)
+            memory.record_observed_articles([article])
+
+    plan = memory.plan_scope(articles, base_fetch_budget=9)
+
+    assert plan.fetch_budget == 9
+    assert len(plan.curated_articles) >= 9
+    source_counts = {}
+    for article in plan.curated_articles:
+        source = article.link.host
+        source_counts[source] = source_counts.get(source, 0) + 1
+    assert max(source_counts.values()) <= 3

@@ -17,6 +17,7 @@ daily-*
 dry-run-digest-*
 feedback-buttons-preview.html
 debug
+tmp/
 run.log
 run.err.log
 run-preview.log

@@ -62,7 +62,7 @@ PAYWALL_CONTENT_MARKERS = (
 )
 
 DEFAULT_ARTICLE_SELECTION_PROMPT_TEMPLATE = """From the following list of articles, select the top {num_to_select} most relevant and important ones according to the impact they have in the world.
-Return up to {num_to_select} articles. Do not fill the quota with weak, duplicate, stale, unverifiable, paywalled, login-gated, anti-bot, or thin-summary items.
+Aim to return close to {num_to_select} articles when enough recent, distinct, source-backed candidates exist. Return fewer only when the remaining candidates are weak, duplicate, stale, unverifiable, paywalled, login-gated, anti-bot, or thin-summary items.
 Provide your answer as a JSON object with a single key "selected_indices" containing a list of the chosen article numbers (e.g., [1, 5, 10]).
 The selected articles will be included in a news digest summary that responds to this description: "{collection_prompt}"
 
@@ -80,7 +80,7 @@ DEFAULT_COLLECTION_SUMMARY_PROMPT_TEMPLATE = """Here are a few digests of previo
 
 Consider that today is {today}.
 
-1. Identify up to {n_most_important_news} important stories. It is acceptable and preferred to return fewer items when the source material is weak, duplicate, stale, unverifiable, or gated.
+1. Identify up to {n_most_important_news} important stories, aiming to get close to that number when enough recent, distinct, source-backed stories are available. Return fewer only when the remaining material is weak, duplicate, stale, unverifiable, or gated.
 2. Considering that the same story may be repeated in multitiple articles from different perspectives and with different details, write a cohesive and concise summary of those top stories.
 3. The final summary must be in {output_language}.
 4. **Crucially, for every piece of information you include, you MUST cite the source using a Markdown link like this: ([feed name](Link)).**
@@ -448,6 +448,18 @@ Articles:
 
         return False
 
+    def _article_is_strong_duplicate(
+        self,
+        article: Article,
+        existing: Article,
+    ) -> bool:
+        article_fingerprint = extract_story_fingerprint(article.title, article.summary)
+        existing_fingerprint = extract_story_fingerprint(existing.title, existing.summary)
+        if article_fingerprint and article_fingerprint == existing_fingerprint:
+            return True
+
+        return title_similarity(article.title, existing.title) >= 0.42
+
     def _build_editorial_mix(
         self,
         articles: List[Article],
@@ -520,6 +532,22 @@ Articles:
             if source_counts.get(source_key, 0) >= source_cap:
                 continue
             if any(self._article_cluster_matches(article, existing) for existing in selected):
+                continue
+            selected.append(article)
+            source_counts[source_key] = source_counts.get(source_key, 0) + 1
+
+        for article in deferred:
+            if len(selected) >= refill_target:
+                break
+            if article in selected:
+                continue
+            source_key = extract_domain(str(article.link))
+            if source_counts.get(source_key, 0) >= source_cap:
+                continue
+            if any(
+                self._article_is_strong_duplicate(article, existing)
+                for existing in selected
+            ):
                 continue
             selected.append(article)
             source_counts[source_key] = source_counts.get(source_key, 0) + 1
@@ -907,7 +935,7 @@ Articles:
         collection_summary_prompt = (
             f"Here are a few digests of previous news and some articles summarized. You should select the most important stories presented in the summarized articles below, avoiding previously covered stories.\n\n"
             f"Consider that today is {datetime.datetime.now().strftime('%Y %B, %-d')}.\n\n"
-            f"1. Identify up to {target_story_count} most important stories."
+            f"1. Identify up to {target_story_count} most important stories, aiming to get close to that number when enough recent, distinct, source-backed stories are available. Return fewer only when the remaining material is weak, duplicate, stale, unverifiable, or gated. "
             f"2. Considering that the same story may be repeated in multitiple articles from different perspectives and with different details, write a cohesive and concise summary of those top stories. "
             f"3. The final summary must be in {self.settings.output_language}. "
             f"4. **Crucially, for every piece of information you include, you MUST cite the source using a Markdown link like this: ([feed name](Link)).** "

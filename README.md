@@ -128,7 +128,7 @@ We stand on one open-source shoulder:
 | **Full-article extraction** | `trafilatura` + Playwright for pages RSS summaries cannot carry; paywalled FT/WSJ titles still signal, accessible sources fill detail. |
 | **Chinese output** | Summaries, section intros, and **入选优势** lines are Chinese by default (`output_language = "Chinese"` in `config.toml`). |
 | **Email delivery** | iCloud SMTP (`smtp.mail.me.com:587`) — HTML email rendered from markdown via `markdown2`. |
-| **Local fallback** | Missing SMTP credentials → `daily-digest-YYYY-MM-DD.md` written locally. |
+| **Local fallback** | Missing SMTP credentials or failed SMTP delivery → `daily-digest-YYYY-MM-DD.md` and `.html` written locally. |
 | **Automation** | mac mini local `./run.sh` · `./run.sh --scheduled` with interval guard · optional manual GitHub Actions fallback via `workflow_dispatch`. |
 | **Security** | Untrusted RSS/web/PDF content wrapped, normalized, and scanned before every LLM call; browser sandboxing and private-network fetch blocking are enabled by default. |
 | **License** | GPL-3.0 (inherited from upstream) |
@@ -154,6 +154,7 @@ If email credentials are missing or delivery fails, the run still saves:
 
 ```text
 daily-digest-YYYY-MM-DD.md
+daily-digest-YYYY-MM-DD.html
 ```
 
 ---
@@ -252,6 +253,21 @@ Medium tags and newsletters are high-discovery but noisy — keep `max_articles`
 
 ---
 
+## Recent changes
+
+This branch tightens the production loop in four places:
+
+| Area | What changed |
+|---|---|
+| **Top 10 completeness** | Selection prompts and editorial mix now aim to fill the requested count when enough recent, distinct, source-backed stories exist, while still rejecting weak, gated, duplicate, or unverifiable items. |
+| **RSS date quality** | Feed entries now parse `published`, `updated`, `created`, common text dates, and publisher URL date patterns; undated entries are skipped when `max_age` filtering is active. |
+| **Search memory resilience** | Legacy `history/search_memory.json` files are lazily backfilled with newer source metrics, and scope planning can refill the fetch budget from established sources without over-concentrating one domain. |
+| **Local safety nets** | Dry runs avoid persisting search memory, and failed email delivery saves both Markdown and HTML preview files before raising an error. |
+
+Finance curation was also widened to admit market infrastructure, payments, clearing, settlement, bank regulation, and official-sector plumbing stories when they clearly affect liquidity, credit, risk appetite, capital allocation, or market narrative.
+
+---
+
 ## Six load-bearing ideas
 
 ### 1 · Collections are TOML files, not code.
@@ -343,7 +359,7 @@ Only set `browser_sandbox = false` when the whole run is already inside a strong
 | Extraction | `trafilatura` · `playwright` (headless fetch when needed) |
 | LLM | `litellm` — reasoner / light / filter model roles |
 | Security | [`prompt_security.py`](src/better_morning/prompt_security.py) — wrap, normalize, injection heuristics |
-| Output | `markdown2` → HTML email · local `.md` fallback |
+| Output | `markdown2` → HTML email · local `.md` + `.html` fallback |
 | Config | [`config.toml`](config.toml) (global prompts) + `collections/*.toml` (feeds + filters) |
 | CI | [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml) · `history/` cache between runs |
 | Tests | `pytest` under [`tests/`](tests/) |
@@ -355,8 +371,9 @@ Only set `browser_sandbox = false` when the whole run is already inside a strong
 | Target | When | Notes |
 |---|---|---|
 | **iCloud email** | `output_type = "email"` and SMTP secrets set | Subject: `[Morning Brief] AI + Finance Daily Digest \| YYYY-MM-DD` |
-| **Local markdown** | SMTP missing or send fails | `daily-digest-YYYY-MM-DD.md` in repo root |
-| **History JSON** | Every successful run | `history/` — powers dedupe and LLM context |
+| **Local files** | SMTP missing or send fails | `daily-digest-YYYY-MM-DD.md` and `.html` in repo root |
+| **Dry-run files** | `BETTER_MORNING_DRY_RUN=true` | `dry-run-digest-YYYY-MM-DD.md` and `.html`; search memory is not persisted |
+| **History JSON** | Every successful non-dry-run | `history/` — powers dedupe and LLM context |
 
 ---
 
@@ -418,6 +435,7 @@ Early but real. The closed loop — **fetch RSS → select → extract → summa
 | Full-article extraction (trafilatura + Playwright) | ✅ stable |
 | Prompt-injection guardrails | ✅ stable |
 | iCloud SMTP + `.md` fallback | ✅ stable |
+| SMTP failure `.md` + `.html` fallback | ✅ stable |
 | `./run.sh --scheduled` interval guard | ✅ stable |
 | GitHub Actions manual fallback + history cache | ✅ stable |
 | Telegram / Slack output | ⏳ planned |

@@ -69,7 +69,7 @@ MorningModel 的目标很简单：
 | **正文抽取** | `trafilatura` + Playwright 处理 RSS 摘要装不下的正文；FT/WSJ 的公开标题仍可作为高信号线索。 |
 | **中文输出** | `config.toml` 默认 `output_language = "Chinese"`，摘要、栏目和 **入选优势** 都以中文生成。 |
 | **邮件投递** | iCloud SMTP (`smtp.mail.me.com:587`)，Markdown 经 `markdown2` 渲染为 HTML 邮件。 |
-| **本地回退** | SMTP 凭据缺失或发送失败时，保存 `daily-digest-YYYY-MM-DD.md`。 |
+| **本地回退** | SMTP 凭据缺失或发送失败时，保存 `daily-digest-YYYY-MM-DD.md` 和 `.html`。 |
 | **自动化** | mac mini 本地 `./run.sh` · 带间隔保护的 `./run.sh --scheduled` · GitHub Actions 仅保留 `workflow_dispatch` 手动备用。 |
 | **安全防护** | RSS、网页、PDF、历史摘要都按不可信输入处理；见 [`src/better_morning/prompt_security.py`](src/better_morning/prompt_security.py)。 |
 
@@ -94,6 +94,7 @@ cp .env.local.example .env.local
 
 ```text
 daily-digest-YYYY-MM-DD.md
+daily-digest-YYYY-MM-DD.html
 ```
 
 ---
@@ -187,6 +188,21 @@ max_articles = 20
 ```
 
 完整源列表和调优建议见 [`docs/rss_sources.md`](docs/rss_sources.md)。
+
+---
+
+## 最近整理的改动
+
+这次改动主要让生产运行更稳、更接近每天的 Top 10 目标：
+
+| 范围 | 变化 |
+|---|---|
+| **Top 10 完整度** | 候选选择和最终混排会在有足够新鲜、不同源、可验证故事时尽量补足目标数量；弱、重复、过期、订阅墙或不可验证内容仍然会被剔除。 |
+| **RSS 日期质量** | 现在会解析 `published`、`updated`、`created`、常见文本日期和出版社 URL 里的日期；启用 `max_age` 时，没有可靠日期的条目会被跳过。 |
+| **搜索记忆兼容** | 旧版 `history/search_memory.json` 会在正常运行中补齐新的 source metrics；抓取范围规划也能从成熟信息源补足预算，同时限制单一域名过度集中。 |
+| **本地安全网** | dry-run 不再持久化 search memory；邮件发送失败时会先保存 Markdown 和 HTML 预览，再抛出错误。 |
+
+Finance 栏目也放宽了“市场基础设施”类新闻：payments、clearing、settlement、银行监管、官方部门决策等，只要能解释流动性、信用、风险偏好、资本配置或市场叙事，就可以入选。
 
 ---
 
@@ -300,7 +316,7 @@ macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一�
 | Extraction | `trafilatura` · Playwright |
 | LLM | `litellm` · reasoner / light / filter 三类模型角色 |
 | Security | [`prompt_security.py`](src/better_morning/prompt_security.py) |
-| Output | `markdown2` → HTML email · 本地 `.md` 回退 |
+| Output | `markdown2` → HTML email · 本地 `.md` + `.html` 回退 |
 | CI | [`.github/workflows/daily_digest.yml`](.github/workflows/daily_digest.yml) |
 | Tests | `pytest` under [`tests/`](tests/) |
 
@@ -311,8 +327,9 @@ macOS LaunchAgent 推荐频繁轻量检查，而不是设置一个很长的一�
 | Target | 触发条件 | 说明 |
 |---|---|---|
 | **iCloud email** | `output_type = "email"` 且 SMTP secrets 完整 | Subject: `[Morning Brief] AI + Finance Daily Digest \| YYYY-MM-DD` |
-| **Local markdown** | SMTP 缺失或发送失败 | `daily-digest-YYYY-MM-DD.md` |
-| **History JSON** | 成功运行后 | `history/`，用于去重和上下文 |
+| **Local files** | SMTP 缺失或发送失败 | `daily-digest-YYYY-MM-DD.md` 和 `.html` |
+| **Dry-run files** | `BETTER_MORNING_DRY_RUN=true` | `dry-run-digest-YYYY-MM-DD.md` 和 `.html`；不会持久化 search memory |
+| **History JSON** | 成功的非 dry-run 后 | `history/`，用于去重和上下文 |
 
 ---
 
@@ -374,6 +391,7 @@ GitHub Actions 会缓存 `history/`，让你在手动触发云端备用运行时
 | 正文抽取（trafilatura + Playwright） | stable |
 | prompt-injection guardrails | stable |
 | iCloud SMTP + `.md` 回退 | stable |
+| SMTP 失败 `.md` + `.html` 回退 | stable |
 | `./run.sh --scheduled` 间隔保护 | stable |
 | GitHub Actions 手动备用 + history cache | stable |
 | Telegram / Slack 输出 | planned |
